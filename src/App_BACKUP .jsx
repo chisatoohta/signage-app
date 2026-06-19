@@ -1,0 +1,836 @@
+import { useState, useEffect } from "react";
+
+// ─── 初期データ ───────────────────────────────────────────
+const initialAds = [
+  { id: 1, title: "夏季キャンペーン2026", file: "summer_campaign.mp4", duration: 30, createdAt: "2026-05-10", thumbnail: "🌊" },
+  { id: 2, title: "新商品ローンチ", file: "new_product.mp4", duration: 15, createdAt: "2026-05-20", thumbnail: "✨" },
+  { id: 3, title: "週末特別セール", file: "weekend_sale.mp4", duration: 20, createdAt: "2026-06-01", thumbnail: "🏷️" },
+];
+
+const initialStores = [
+  { id: 1, name: "渋谷本店", address: "東京都渋谷区渋谷1-1-1", screen: 3 },
+  { id: 2, name: "新宿東口店", address: "東京都新宿区新宿3-2-1", screen: 2 },
+  { id: 3, name: "池袋西口店", address: "東京都豊島区西池袋1-5-2", screen: 4 },
+  { id: 4, name: "横浜みなとみらい店", address: "神奈川県横浜市西区みなとみらい2-1", screen: 2 },
+];
+
+const initialDeliveries = [
+  { adId: 1, storeIds: [1, 2, 3] },
+  { adId: 2, storeIds: [1, 4] },
+  { adId: 3, storeIds: [2, 3, 4] },
+];
+
+const generateLogs = () => {
+  const logs = [];
+  const adTitles = { 1: "夏季キャンペーン2026", 2: "新商品ローンチ", 3: "週末特別セール" };
+  const storeNames = { 1: "渋谷本店", 2: "新宿東口店", 3: "池袋西口店", 4: "横浜みなとみらい店" };
+  const adStorePairs = [
+    [1, 1], [1, 2], [1, 3],
+    [2, 1], [2, 4],
+    [3, 2], [3, 3], [3, 4],
+  ];
+  let id = 1;
+  for (let d = 0; d < 7; d++) {
+    const date = new Date("2026-06-08");
+    date.setDate(date.getDate() - d);
+    for (let h = 9; h <= 21; h += 2) {
+      const [adId, storeId] = adStorePairs[Math.floor(Math.random() * adStorePairs.length)];
+      logs.push({
+        id: id++,
+        adId,
+        storeId,
+        adTitle: adTitles[adId],
+        storeName: storeNames[storeId],
+        playedAt: `${date.toISOString().slice(0, 10)} ${String(h).padStart(2, "0")}:${String(Math.floor(Math.random() * 60)).padStart(2, "0")}`,
+        status: Math.random() > 0.05 ? "成功" : "エラー",
+      });
+    }
+  }
+  return logs.sort((a, b) => b.playedAt.localeCompare(a.playedAt));
+};
+
+const initialLogs = generateLogs();
+
+// ─── ユーティリティ ────────────────────────────────────────
+const newId = (arr) => Math.max(0, ...arr.map((x) => x.id)) + 1;
+
+// ─── コンポーネント ────────────────────────────────────────
+const NAV_ITEMS = [
+  { id: "dashboard", label: "ダッシュボード", icon: "◈" },
+  { id: "ads", label: "広告管理", icon: "▶" },
+  { id: "stores", label: "店舗管理", icon: "◉" },
+  { id: "delivery", label: "配信設定", icon: "⬡" },
+  { id: "logs", label: "再生ログ", icon: "≡" },
+];
+export default function App() {
+  
+  const [page, setPage] = useState("dashboard");
+  const [ads, setAds] = useState(initialAds);
+  const [stores, setStores] = useState(initialStores);
+  const [deliveries, setDeliveries] = useState(initialDeliveries);
+  const [logs] = useState(initialLogs);
+  const [toast, setToast] = useState(null);
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 2800);
+  };
+
+  return (
+    <div style={styles.root}>
+      {/* サイドバー */}
+      <aside style={styles.sidebar}>
+        <div style={styles.logo}>
+          <span style={styles.logoIcon}>⬡</span>
+          <div>
+            <div style={styles.logoTitle}>SIGNAGE</div>
+            <div style={styles.logoSub}>AD MANAGER</div>
+          </div>
+        </div>
+        <nav style={styles.nav}>
+          {NAV_ITEMS.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setPage(item.id)}
+              style={{
+                ...styles.navItem,
+                ...(page === item.id ? styles.navItemActive : {}),
+              }}
+            >
+              <span style={styles.navIcon}>{item.icon}</span>
+              <span>{item.label}</span>
+              {page === item.id && <span style={styles.navDot} />}
+            </button>
+          ))}
+        </nav>
+        <div style={styles.sidebarFooter}>
+          <div style={styles.footerStatus}>
+            <span style={styles.statusDot} />
+            <span style={{ fontSize: 11, color: "#6ee7b7" }}>システム稼働中</span>
+          </div>
+        </div>
+      </aside>
+
+      {/* メイン */}
+      <main style={styles.main}>
+        <header style={styles.header}>
+          <div style={styles.headerLeft}>
+            <h1 style={styles.pageTitle}>{NAV_ITEMS.find((n) => n.id === page)?.label}</h1>
+            <span style={styles.pagePath}>サイネージ広告管理 / {NAV_ITEMS.find((n) => n.id === page)?.label}</span>
+          </div>
+          <div style={styles.headerRight}>
+            <div style={styles.dateBadge}>2026.06.08</div>
+          </div>
+        </header>
+        <div style={styles.content}>
+          {page === "dashboard" && <Dashboard ads={ads} stores={stores} logs={logs} deliveries={deliveries} />}
+          {page === "ads" && <AdsPage ads={ads} setAds={setAds} showToast={showToast} />}
+          {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
+          {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
+          {page === "logs" && <LogsPage logs={logs} />}
+        </div>
+      </main>
+
+      {toast && (
+        <div style={{ ...styles.toast, ...(toast.type === "error" ? styles.toastError : {}) }}>
+          <span>{toast.type === "success" ? "✓" : "✕"}</span> {toast.msg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── ダッシュボード ──────────────────────────────────────
+function Dashboard({ ads, stores, logs, deliveries }) {
+  const todayLogs = logs.filter((l) => l.playedAt.startsWith("2026-06-08"));
+  const successRate = logs.length ? Math.round((logs.filter((l) => l.status === "成功").length / logs.length) * 100) : 0;
+
+  return (
+    <div style={styles.grid2}>
+      {/* KPI カード */}
+      <StatCard label="登録広告数" value={ads.length} unit="本" icon="▶" color="#38bdf8" />
+      <StatCard label="店舗数" value={stores.length} unit="店" icon="◉" color="#a78bfa" />
+      <StatCard label="本日の再生数" value={todayLogs.length} unit="回" icon="≡" color="#34d399" />
+      <StatCard label="成功率" value={successRate} unit="%" icon="★" color="#fb923c" />
+
+      {/* 最近のログ */}
+      <div style={{ ...styles.card, gridColumn: "1 / -1" }}>
+        <div style={styles.cardHeader}>
+          <span style={styles.cardTitle}>最近の再生ログ</span>
+        </div>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              {["日時", "広告名", "店舗", "ステータス"].map((h) => (
+                <th key={h} style={styles.th}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {logs.slice(0, 8).map((log) => (
+              <tr key={log.id} style={styles.tr}>
+                <td style={styles.td}><span style={styles.mono}>{log.playedAt}</span></td>
+                <td style={styles.td}>{log.adTitle}</td>
+                <td style={styles.td}>{log.storeName}</td>
+                <td style={styles.td}><StatusBadge status={log.status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ label, value, unit, icon, color }) {
+  return (
+    <div style={{ ...styles.card, ...styles.statCard }}>
+      <div style={{ ...styles.statIcon, background: color + "22", color }}>{icon}</div>
+      <div style={styles.statBody}>
+        <div style={styles.statLabel}>{label}</div>
+        <div style={styles.statValue}>
+          <span style={{ ...styles.statNum, color }}>{value}</span>
+          <span style={styles.statUnit}>{unit}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 広告管理 ────────────────────────────────────────────
+function AdsPage({ ads, setAds, showToast }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", file: "", duration: "" });
+
+  const handleAdd = () => {
+    if (!form.title || !form.file) return showToast("タイトルとファイル名を入力してください", "error");
+    const newAd = {
+      id: newId(ads),
+      title: form.title,
+      file: form.file,
+      duration: Number(form.duration) || 15,
+      createdAt: "2026-06-08",
+      thumbnail: ["🎬", "📺", "🎥", "🖥️"][Math.floor(Math.random() * 4)],
+    };
+    setAds([...ads, newAd]);
+    setForm({ title: "", file: "", duration: "" });
+    setShowForm(false);
+    showToast("広告を登録しました");
+  };
+
+  const handleDelete = (id) => {
+    setAds(ads.filter((a) => a.id !== id));
+    showToast("広告を削除しました");
+  };
+
+  return (
+    <div>
+      <div style={styles.pageActions}>
+        <button style={styles.btnPrimary} onClick={() => setShowForm(!showForm)}>
+          {showForm ? "✕ キャンセル" : "+ 広告を登録"}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={styles.formCard}>
+          <div style={styles.cardTitle}>新規広告登録</div>
+          <div style={styles.formGrid}>
+            <FormField label="広告タイトル *" value={form.title} onChange={(v) => setForm({ ...form, title: v })} placeholder="例: 夏季キャンペーン2026" />
+            <FormField label="動画ファイル名 *" value={form.file} onChange={(v) => setForm({ ...form, file: v })} placeholder="例: summer.mp4" />
+            <FormField label="再生時間（秒）" value={form.duration} onChange={(v) => setForm({ ...form, duration: v })} placeholder="例: 30" type="number" />
+          </div>
+          <button style={styles.btnPrimary} onClick={handleAdd}>登録する</button>
+        </div>
+      )}
+
+      <div style={styles.cardGrid}>
+        {ads.map((ad) => (
+          <div key={ad.id} style={styles.adCard}>
+            <div style={styles.adThumb}>{ad.thumbnail}</div>
+            <div style={styles.adInfo}>
+              <div style={styles.adTitle}>{ad.title}</div>
+              <div style={styles.adMeta}>{ad.file}</div>
+              <div style={styles.adMeta}>
+                <span style={styles.badge}>▶ {ad.duration}秒</span>
+                <span style={{ ...styles.badge, marginLeft: 6 }}>📅 {ad.createdAt}</span>
+              </div>
+            </div>
+            <button style={styles.btnDanger} onClick={() => handleDelete(ad.id)}>削除</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── 店舗管理 ────────────────────────────────────────────
+function StoresPage({ stores, setStores, showToast }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ name: "", address: "", screen: "" });
+
+  const handleAdd = () => {
+    if (!form.name) return showToast("店舗名を入力してください", "error");
+    setStores([...stores, { id: newId(stores), name: form.name, address: form.address, screen: Number(form.screen) || 1 }]);
+    setForm({ name: "", address: "", screen: "" });
+    setShowForm(false);
+    showToast("店舗を登録しました");
+  };
+
+  const handleDelete = (id) => {
+    setStores(stores.filter((s) => s.id !== id));
+    showToast("店舗を削除しました");
+  };
+
+  return (
+    <div>
+      <div style={styles.pageActions}>
+        <button style={styles.btnPrimary} onClick={() => setShowForm(!showForm)}>
+          {showForm ? "✕ キャンセル" : "+ 店舗を登録"}
+        </button>
+      </div>
+
+      {showForm && (
+        <div style={styles.formCard}>
+          <div style={styles.cardTitle}>新規店舗登録</div>
+          <div style={styles.formGrid}>
+            <FormField label="店舗名 *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="例: 渋谷本店" />
+            <FormField label="住所" value={form.address} onChange={(v) => setForm({ ...form, address: v })} placeholder="例: 東京都渋谷区..." />
+            <FormField label="スクリーン数" value={form.screen} onChange={(v) => setForm({ ...form, screen: v })} placeholder="例: 2" type="number" />
+          </div>
+          <button style={styles.btnPrimary} onClick={handleAdd}>登録する</button>
+        </div>
+      )}
+
+      <div style={styles.card}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              {["店舗名", "住所", "スクリーン数", "操作"].map((h) => (
+                <th key={h} style={styles.th}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {stores.map((s) => (
+              <tr key={s.id} style={styles.tr}>
+                <td style={styles.td}><span style={styles.storeName}>◉ {s.name}</span></td>
+                <td style={styles.td}><span style={{ color: "#94a3b8", fontSize: 13 }}>{s.address}</span></td>
+                <td style={styles.td}><span style={styles.badge}>🖥 {s.screen}面</span></td>
+                <td style={styles.td}>
+                  <button style={styles.btnDangerSm} onClick={() => handleDelete(s.id)}>削除</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── 配信設定 ────────────────────────────────────────────
+function DeliveryPage({ ads, stores, deliveries, setDeliveries, showToast }) {
+  const [selectedAd, setSelectedAd] = useState(ads[0]?.id || null);
+
+  const delivery = deliveries.find((d) => d.adId === selectedAd);
+  const storeIds = delivery?.storeIds || [];
+
+  const toggleStore = (storeId) => {
+    const exists = storeIds.includes(storeId);
+    const newIds = exists ? storeIds.filter((id) => id !== storeId) : [...storeIds, storeId];
+    setDeliveries(
+      deliveries.some((d) => d.adId === selectedAd)
+        ? deliveries.map((d) => (d.adId === selectedAd ? { ...d, storeIds: newIds } : d))
+        : [...deliveries, { adId: selectedAd, storeIds: newIds }]
+    );
+    showToast(exists ? "配信店舗を解除しました" : "配信店舗を追加しました");
+  };
+
+  return (
+    <div style={styles.deliveryLayout}>
+      {/* 広告選択 */}
+      <div style={{ ...styles.card, flex: "0 0 280px" }}>
+        <div style={styles.cardHeader}><span style={styles.cardTitle}>広告を選択</span></div>
+        <div>
+          {ads.map((ad) => (
+            <button
+              key={ad.id}
+              onClick={() => setSelectedAd(ad.id)}
+              style={{
+                ...styles.adSelectItem,
+                ...(selectedAd === ad.id ? styles.adSelectItemActive : {}),
+              }}
+            >
+              <span style={styles.adSelectThumb}>{ad.thumbnail}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0" }}>{ad.title}</div>
+                <div style={{ fontSize: 11, color: "#64748b" }}>{ad.duration}秒</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* 配信店舗設定 */}
+      <div style={{ ...styles.card, flex: 1 }}>
+        <div style={styles.cardHeader}>
+          <span style={styles.cardTitle}>
+            配信店舗設定
+            {selectedAd && (
+              <span style={{ marginLeft: 10, fontSize: 12, color: "#38bdf8" }}>
+                — {ads.find((a) => a.id === selectedAd)?.title}
+              </span>
+            )}
+          </span>
+          <span style={styles.badge}>{storeIds.length} 店舗選択中</span>
+        </div>
+        <div style={styles.storeGrid}>
+          {stores.map((store) => {
+            const active = storeIds.includes(store.id);
+            return (
+              <button
+                key={store.id}
+                onClick={() => selectedAd && toggleStore(store.id)}
+                style={{
+                  ...styles.storeToggle,
+                  ...(active ? styles.storeToggleActive : {}),
+                  ...(!selectedAd ? { opacity: 0.4, cursor: "not-allowed" } : {}),
+                }}
+              >
+                <div style={{ fontSize: 22, marginBottom: 8 }}>◉</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{store.name}</div>
+                <div style={{ fontSize: 11, color: active ? "#a7f3d0" : "#64748b", marginTop: 4 }}>{store.screen}スクリーン</div>
+                {active && <div style={styles.activeCheck}>✓</div>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── 再生ログ ────────────────────────────────────────────
+function LogsPage({ logs }) {
+  const [filter, setFilter] = useState({ ad: "all", store: "all", status: "all" });
+
+  const adNames = [...new Set(logs.map((l) => l.adTitle))];
+  const storeNames = [...new Set(logs.map((l) => l.storeName))];
+
+  const filtered = logs.filter((l) => {
+    if (filter.ad !== "all" && l.adTitle !== filter.ad) return false;
+    if (filter.store !== "all" && l.storeName !== filter.store) return false;
+    if (filter.status !== "all" && l.status !== filter.status) return false;
+    return true;
+  });
+
+  return (
+    <div>
+      {/* フィルター */}
+      <div style={styles.filterBar}>
+        <FilterSelect label="広告" value={filter.ad} onChange={(v) => setFilter({ ...filter, ad: v })}
+          options={[{ value: "all", label: "すべて" }, ...adNames.map((n) => ({ value: n, label: n }))]} />
+        <FilterSelect label="店舗" value={filter.store} onChange={(v) => setFilter({ ...filter, store: v })}
+          options={[{ value: "all", label: "すべて" }, ...storeNames.map((n) => ({ value: n, label: n }))]} />
+        <FilterSelect label="ステータス" value={filter.status} onChange={(v) => setFilter({ ...filter, status: v })}
+          options={[{ value: "all", label: "すべて" }, { value: "成功", label: "成功" }, { value: "エラー", label: "エラー" }]} />
+        <span style={{ marginLeft: "auto", fontSize: 13, color: "#64748b" }}>{filtered.length} 件</span>
+      </div>
+
+      <div style={styles.card}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              {["日時", "広告名", "店舗", "ステータス"].map((h) => (
+                <th key={h} style={styles.th}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((log) => (
+              <tr key={log.id} style={styles.tr}>
+                <td style={styles.td}><span style={styles.mono}>{log.playedAt}</span></td>
+                <td style={styles.td}>{log.adTitle}</td>
+                <td style={styles.td}>{log.storeName}</td>
+                <td style={styles.td}><StatusBadge status={log.status} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── 共通コンポーネント ────────────────────────────────
+function StatusBadge({ status }) {
+  return (
+    <span style={{ ...styles.statusBadge, ...(status === "成功" ? styles.statusOk : styles.statusErr) }}>
+      {status === "成功" ? "● 成功" : "✕ エラー"}
+    </span>
+  );
+}
+
+function FormField({ label, value, onChange, placeholder, type = "text" }) {
+  return (
+    <div style={styles.formField}>
+      <label style={styles.label}>{label}</label>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={styles.input}
+      />
+    </div>
+  );
+}
+
+function FilterSelect({ label, value, onChange, options }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 12, color: "#64748b" }}>{label}</span>
+      <select value={value} onChange={(e) => onChange(e.target.value)} style={styles.select}>
+        {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+// ─── スタイル ────────────────────────────────────────────
+const styles = {
+  root: {
+    display: "flex",
+    height: "100vh",
+    background: "#0a0f1e",
+    color: "#e2e8f0",
+    fontFamily: "'DM Sans', 'Noto Sans JP', sans-serif",
+    overflow: "hidden",
+  },
+  sidebar: {
+    width: 220,
+    background: "#0d1526",
+    borderRight: "1px solid #1e2d48",
+    display: "flex",
+    flexDirection: "column",
+    padding: "24px 0",
+    flexShrink: 0,
+  },
+  logo: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "0 20px 28px",
+    borderBottom: "1px solid #1e2d48",
+    marginBottom: 16,
+  },
+  logoIcon: { fontSize: 28, color: "#38bdf8" },
+  logoTitle: { fontSize: 15, fontWeight: 800, letterSpacing: 3, color: "#f1f5f9" },
+  logoSub: { fontSize: 9, color: "#38bdf8", letterSpacing: 2 },
+  nav: { display: "flex", flexDirection: "column", gap: 2, padding: "0 12px" },
+  navItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    padding: "10px 12px",
+    borderRadius: 8,
+    background: "none",
+    border: "none",
+    color: "#64748b",
+    fontSize: 13,
+    cursor: "pointer",
+    textAlign: "left",
+    position: "relative",
+    transition: "all 0.15s",
+  },
+  navItemActive: {
+    background: "#172040",
+    color: "#38bdf8",
+    fontWeight: 600,
+  },
+  navIcon: { fontSize: 15, width: 20, textAlign: "center" },
+  navDot: {
+    position: "absolute",
+    right: 10,
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "#38bdf8",
+  },
+  sidebarFooter: { marginTop: "auto", padding: "20px 20px 0" },
+  footerStatus: { display: "flex", alignItems: "center", gap: 8 },
+  statusDot: {
+    width: 8, height: 8, borderRadius: "50%",
+    background: "#34d399",
+    boxShadow: "0 0 8px #34d399",
+  },
+  main: { flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" },
+  header: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "20px 32px",
+    borderBottom: "1px solid #1e2d48",
+    background: "#0d1526",
+    flexShrink: 0,
+  },
+  headerLeft: {},
+  headerRight: {},
+  pageTitle: { margin: 0, fontSize: 20, fontWeight: 700, color: "#f1f5f9" },
+  pagePath: { fontSize: 11, color: "#475569", marginTop: 2, display: "block" },
+  dateBadge: {
+    fontSize: 12,
+    color: "#38bdf8",
+    background: "#172040",
+    border: "1px solid #1e3a5f",
+    padding: "5px 12px",
+    borderRadius: 6,
+    fontWeight: 600,
+    letterSpacing: 1,
+  },
+  content: { flex: 1, overflow: "auto", padding: 28 },
+
+  grid2: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, 1fr)",
+    gap: 16,
+  },
+  card: {
+    background: "#111827",
+    border: "1px solid #1e2d48",
+    borderRadius: 12,
+    padding: 20,
+  },
+  cardHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  cardTitle: { fontSize: 14, fontWeight: 700, color: "#94a3b8", letterSpacing: 0.5 },
+  statCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+  },
+  statIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 20,
+    flexShrink: 0,
+  },
+  statBody: {},
+  statLabel: { fontSize: 11, color: "#64748b", marginBottom: 4 },
+  statValue: { display: "flex", alignItems: "baseline", gap: 4 },
+  statNum: { fontSize: 28, fontWeight: 800 },
+  statUnit: { fontSize: 13, color: "#64748b" },
+
+  table: { width: "100%", borderCollapse: "collapse" },
+  th: {
+    textAlign: "left",
+    fontSize: 11,
+    color: "#475569",
+    fontWeight: 600,
+    padding: "8px 12px",
+    borderBottom: "1px solid #1e2d48",
+    letterSpacing: 0.5,
+  },
+  tr: { borderBottom: "1px solid #0f172a", transition: "background 0.1s" },
+  td: { padding: "10px 12px", fontSize: 13 },
+  mono: { fontFamily: "monospace", fontSize: 12, color: "#64748b" },
+
+  statusBadge: {
+    fontSize: 11,
+    padding: "3px 8px",
+    borderRadius: 4,
+    fontWeight: 600,
+  },
+  statusOk: { background: "#064e3b", color: "#6ee7b7" },
+  statusErr: { background: "#450a0a", color: "#fca5a5" },
+
+  pageActions: { display: "flex", justifyContent: "flex-end", marginBottom: 16 },
+  btnPrimary: {
+    background: "linear-gradient(135deg, #0ea5e9, #6366f1)",
+    color: "#fff",
+    border: "none",
+    padding: "9px 18px",
+    borderRadius: 8,
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+  },
+  btnDanger: {
+    background: "#450a0a",
+    color: "#fca5a5",
+    border: "1px solid #7f1d1d",
+    padding: "6px 12px",
+    borderRadius: 6,
+    fontSize: 12,
+    cursor: "pointer",
+    flexShrink: 0,
+  },
+  btnDangerSm: {
+    background: "#450a0a",
+    color: "#fca5a5",
+    border: "1px solid #7f1d1d",
+    padding: "4px 10px",
+    borderRadius: 5,
+    fontSize: 11,
+    cursor: "pointer",
+  },
+
+  formCard: {
+    background: "#111827",
+    border: "1px solid #1e3a5f",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 20,
+  },
+  formGrid: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, margin: "16px 0" },
+  formField: { display: "flex", flexDirection: "column", gap: 6 },
+  label: { fontSize: 11, color: "#64748b", fontWeight: 600 },
+  input: {
+    background: "#0d1526",
+    border: "1px solid #1e2d48",
+    borderRadius: 6,
+    padding: "8px 12px",
+    color: "#e2e8f0",
+    fontSize: 13,
+    outline: "none",
+  },
+
+  cardGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 12 },
+  adCard: {
+    background: "#111827",
+    border: "1px solid #1e2d48",
+    borderRadius: 12,
+    padding: 16,
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+  },
+  adThumb: {
+    width: 52,
+    height: 52,
+    background: "#172040",
+    borderRadius: 10,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 24,
+    flexShrink: 0,
+  },
+  adInfo: { flex: 1, minWidth: 0 },
+  adTitle: { fontSize: 14, fontWeight: 600, color: "#e2e8f0", marginBottom: 4 },
+  adMeta: { fontSize: 11, color: "#64748b", marginBottom: 4 },
+  badge: {
+    background: "#172040",
+    border: "1px solid #1e3a5f",
+    color: "#94a3b8",
+    fontSize: 11,
+    padding: "2px 8px",
+    borderRadius: 4,
+  },
+
+  storeName: { fontWeight: 600, color: "#e2e8f0" },
+
+  deliveryLayout: { display: "flex", gap: 16, alignItems: "flex-start" },
+  adSelectItem: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    width: "100%",
+    padding: "10px 12px",
+    background: "none",
+    border: "1px solid transparent",
+    borderRadius: 8,
+    cursor: "pointer",
+    textAlign: "left",
+    marginBottom: 4,
+  },
+  adSelectItemActive: {
+    background: "#172040",
+    border: "1px solid #1e3a5f",
+  },
+  adSelectThumb: { fontSize: 20 },
+  storeGrid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 10 },
+  storeToggle: {
+    background: "#0d1526",
+    border: "1px solid #1e2d48",
+    borderRadius: 10,
+    padding: "16px 12px",
+    cursor: "pointer",
+    color: "#94a3b8",
+    textAlign: "center",
+    position: "relative",
+    transition: "all 0.15s",
+  },
+  storeToggleActive: {
+    background: "#0c2a1f",
+    border: "1px solid #065f46",
+    color: "#6ee7b7",
+  },
+  activeCheck: {
+    position: "absolute",
+    top: 8,
+    right: 10,
+    width: 18,
+    height: 18,
+    background: "#34d399",
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 10,
+    color: "#022c22",
+    fontWeight: 800,
+  },
+
+  filterBar: {
+    display: "flex",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 14,
+    background: "#111827",
+    border: "1px solid #1e2d48",
+    borderRadius: 10,
+    padding: "10px 16px",
+  },
+  select: {
+    background: "#0d1526",
+    border: "1px solid #1e2d48",
+    borderRadius: 6,
+    padding: "5px 10px",
+    color: "#e2e8f0",
+    fontSize: 12,
+    outline: "none",
+    cursor: "pointer",
+  },
+
+  toast: {
+    position: "fixed",
+    bottom: 28,
+    right: 28,
+    background: "#064e3b",
+    border: "1px solid #065f46",
+    color: "#6ee7b7",
+    padding: "12px 20px",
+    borderRadius: 10,
+    fontSize: 13,
+    fontWeight: 600,
+    zIndex: 9999,
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    boxShadow: "0 8px 24px #0005",
+  },
+  toastError: {
+    background: "#450a0a",
+    border: "1px solid #7f1d1d",
+    color: "#fca5a5",
+  },
+};
