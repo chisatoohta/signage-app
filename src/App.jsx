@@ -66,15 +66,40 @@ const NAV_ITEMS = [
 ];
 export default function App() {
   const isPlayerMode = window.location.pathname === "/player";
+  const storeCode = new URLSearchParams(window.location.search).get("store");
   
   const [page, setPage] = useState("dashboard");
   const [ads, setAds] = useState(initialAds);
   useEffect(() => {
   async function loadAds() {
-    const { data, error } = await supabase
-      .from("ads")
-      .select("*")
-      .order("id", { ascending: true });
+    let data = null;
+let error = null;
+
+if (isPlayerMode && storeCode) {
+  const result = await supabase
+    .from("ad_stores")
+    .select(`
+      ads (
+        id,
+        title,
+        file_url,
+        duration,
+        created_at
+      )
+    `)
+    .eq("store_code", storeCode);
+
+  error = result.error;
+  data = result.data?.map((item) => item.ads).filter(Boolean);
+} else {
+  const result = await supabase
+    .from("ads")
+    .select("*")
+    .order("id", { ascending: true });
+
+  error = result.error;
+  data = result.data;
+}
       console.log("Supabase ads data:", data);
 console.log("Supabase ads error:", error);
 
@@ -110,7 +135,7 @@ console.log("Supabase ads error:", error);
   };
 
   if (isPlayerMode) {
-  return <PlayerPage ads={ads} />;
+  return <PlayerPage ads={ads} storeCode={storeCode} />;
 }
 
   return (
@@ -622,7 +647,7 @@ function LogsPage({ logs }) {
     </div>
   );
 }
-function PlayerPage({ ads }) {
+function PlayerPage({ ads, storeCode }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   const currentAd = ads[currentIndex];
@@ -670,6 +695,11 @@ function PlayerPage({ ads }) {
 
       <div style={styles.playerInfo}>
         <div>{currentAd.title}</div>
+        {storeCode && (
+  <div style={{ fontSize: 12, opacity: 0.7 }}>
+    店舗コード：{storeCode}
+  </div>
+)}
         <div style={{ fontSize: 12, opacity: 0.7 }}>
           {currentIndex + 1} / {ads.length}・{currentAd.duration}秒
         </div>
