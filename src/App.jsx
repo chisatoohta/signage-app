@@ -65,6 +65,7 @@ const NAV_ITEMS = [
   { id: "player", label: "プレイヤー", icon: "▣" },
 ];
 export default function App() {
+  const isPlayerMode = window.location.pathname === "/player";
   
   const [page, setPage] = useState("dashboard");
   const [ads, setAds] = useState(initialAds);
@@ -107,6 +108,10 @@ console.log("Supabase ads error:", error);
     setToast({ msg, type });
     setTimeout(() => setToast(null), 2800);
   };
+
+  if (isPlayerMode) {
+  return <PlayerPage ads={ads} />;
+}
 
   return (
     <div style={styles.root}>
