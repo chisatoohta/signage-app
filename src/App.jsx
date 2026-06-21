@@ -313,7 +313,7 @@ function AdsPage({ ads, setAds, stores, showToast }) {
     }
   }
 };
-andleAdd = async () => {
+const handleAdd = async () => {
   if (!form.title || !form.file) {
     return showToast("タイトルとファイルURLを入力してください", "error");
   }
