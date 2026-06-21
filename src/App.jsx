@@ -313,8 +313,7 @@ function AdsPage({ ads, setAds, stores, showToast }) {
     }
   }
 };
-
-  const handleAdd = async () => {
+andleAdd = async () => {
   if (!form.title || !form.file) {
     return showToast("タイトルとファイルURLを入力してください", "error");
   }
@@ -547,29 +546,106 @@ const handleUpdate = async () => {
 // ─── 店舗管理 ────────────────────────────────────────────
 function StoresPage({ stores, setStores, showToast }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", address: "", screen: "" });
+const [editingStore, setEditingStore] = useState(null);
+const [form, setForm] = useState({
+  name: "",
+  address: "",
+  screen_count: "",
+  code: "",
+  player_url: "",
+});
 
-  const handleAdd = () => {
-    if (!form.name) return showToast("店舗名を入力してください", "error");
-    setStores([...stores, { id: newId(stores), name: form.name, address: form.address, screen: Number(form.screen) || 1 }]);
-    setForm({ name: "", address: "", screen: "" });
-    setShowForm(false);
-    showToast("店舗を登録しました");
-  };
+const resetForm = () => {
+  setForm({
+    name: "",
+    address: "",
+    screen_count: "",
+    code: "",
+    player_url: "",
+  });
+  setEditingStore(null);
+  setShowForm(false);
+};
 
-   const handleDelete = async (id) => {
+const handleAdd = async () => {
+  if (!form.name) return showToast("店舗名を入力してください", "error");
+  if (!form.code) return showToast("店舗コードを入力してください", "error");
+
+  const { data, error } = await supabase
+    .from("stores")
+    .insert([
+      {
+        name: form.name,
+        address: form.address,
+        screen_count: Number(form.screen_count) || 1,
+        code: form.code,
+        player_url: form.player_url,
+      },
+    ])
+    .select();
+
+  if (error) {
+    console.error("店舗登録エラー:", error);
+    return showToast("店舗登録に失敗しました", "error");
+  }
+
+  setStores([...stores, data[0]]);
+  resetForm();
+  showToast("店舗を登録しました");
+};
+
+const handleEdit = (store) => {
+  setEditingStore(store);
+  setForm({
+    name: store.name || "",
+    address: store.address || "",
+    screen_count: store.screen_count || "",
+    code: store.code || "",
+    player_url: store.player_url || "",
+  });
+  setShowForm(true);
+};
+
+const handleUpdate = async () => {
+  if (!editingStore) return;
+  if (!form.name) return showToast("店舗名を入力してください", "error");
+  if (!form.code) return showToast("店舗コードを入力してください", "error");
+
+  const { data, error } = await supabase
+    .from("stores")
+    .update({
+      name: form.name,
+      address: form.address,
+      screen_count: Number(form.screen_count) || 1,
+      code: form.code,
+      player_url: form.player_url,
+    })
+    .eq("id", editingStore.id)
+    .select();
+
+  if (error) {
+    console.error("店舗更新エラー:", error);
+    return showToast("店舗更新に失敗しました", "error");
+  }
+
+  setStores(stores.map((s) => (s.id === editingStore.id ? data[0] : s)));
+  resetForm();
+  showToast("店舗を更新しました");
+};
+
+const handleDelete = async (id) => {
   const { error } = await supabase
-    .from("ads")
+    .from("stores")
     .delete()
     .eq("id", id);
 
   if (error) {
-    console.error("広告削除エラー:", error);
-    return showToast("広告の削除に失敗しました", "error");
+    console.error("店舗削除エラー:", error);
+    return showToast("店舗の削除に失敗しました", "error");
   }
 
-  setAds(ads.filter((a) => a.id !== id));
-  showToast("広告を削除しました");
+  setStores(stores.filter((s) => s.id !== id));
+  showToast("店舗を削除しました");
 };
 
   return (
@@ -582,13 +658,49 @@ function StoresPage({ stores, setStores, showToast }) {
 
       {showForm && (
         <div style={styles.formCard}>
-          <div style={styles.cardTitle}>新規店舗登録</div>
+          <div style={styles.cardTitle}>
+  {editingStore ? "店舗編集" : "新規店舗登録"}
+</div>
           <div style={styles.formGrid}>
-            <FormField label="店舗名 *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} placeholder="例: 渋谷本店" />
-            <FormField label="住所" value={form.address} onChange={(v) => setForm({ ...form, address: v })} placeholder="例: 東京都渋谷区..." />
-            <FormField label="スクリーン数" value={form.screen} onChange={(v) => setForm({ ...form, screen: v })} placeholder="例: 2" type="number" />
-          </div>
-          <button style={styles.btnPrimary} onClick={handleAdd}>登録する</button>
+  <FormField
+    label="店舗名 *"
+    value={form.name}
+    onChange={(v) => setForm({ ...form, name: v })}
+    placeholder="例: プリーズ"
+  />
+
+  <FormField
+    label="住所"
+    value={form.address}
+    onChange={(v) => setForm({ ...form, address: v })}
+    placeholder="例: 東京都..."
+  />
+
+  <FormField
+    label="スクリーン数"
+    value={form.screen_count}
+    onChange={(v) => setForm({ ...form, screen_count: v })}
+    placeholder="例: 2"
+    type="number"
+  />
+
+  <FormField
+    label="店舗コード *"
+    value={form.code}
+    onChange={(v) => setForm({ ...form, code: v })}
+    placeholder="例: please"
+  />
+
+  <FormField
+    label="プレイヤーURL"
+    value={form.player_url}
+    onChange={(v) => setForm({ ...form, player_url: v })}
+    placeholder="例: https://signage-app-flax.vercel.app/player?store=please"
+  />
+</div>
+          <button style={styles.btnPrimary} onClick={editingStore ? handleUpdate : handleAdd}>
+  {editingStore ? "更新する" : "登録する"}
+</button>
         </div>
       )}
 
@@ -606,9 +718,14 @@ function StoresPage({ stores, setStores, showToast }) {
               <tr key={s.id} style={styles.tr}>
                 <td style={styles.td}><span style={styles.storeName}>◉ {s.name}</span></td>
                 <td style={styles.td}><span style={{ color: "#94a3b8", fontSize: 13 }}>{s.address}</span></td>
-                <td style={styles.td}><span style={styles.badge}>🖥 {s.screen}面</span></td>
+                <td style={styles.td}><span style={styles.badge}>🖥 {s.screen_count}面</span></td>
                 <td style={styles.td}>
-                  <button style={styles.btnDangerSm} onClick={() => handleDelete(s.id)}>削除</button>
+              <button style={styles.btnPrimary} onClick={() => handleEdit(s)}>
+  編集
+</button>
+<button style={styles.btnDangerSm} onClick={() => handleDelete(s.id)}>
+  削除
+</button>
                 </td>
               </tr>
             ))}
