@@ -128,6 +128,25 @@ console.log("Supabase ads error:", error);
   const [deliveries, setDeliveries] = useState(initialDeliveries);
   const [logs] = useState(initialLogs);
   const [toast, setToast] = useState(null);
+  useEffect(() => {
+  async function loadStores() {
+    const { data, error } = await supabase
+      .from("stores")
+      .select("*")
+      .order("id", { ascending: true });
+      console.log("Supabase stores data:", data);
+console.log("Supabase stores error:", error);
+
+    if (error) {
+      console.error("店舗取得エラー:", error);
+      return;
+    }
+
+    setStores(data);
+  }
+
+  loadStores();
+}, []);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
@@ -186,7 +205,7 @@ console.log("Supabase ads error:", error);
         </header>
         <div style={styles.content}>
           {page === "dashboard" && <Dashboard ads={ads} stores={stores} logs={logs} deliveries={deliveries} />}
-          {page === "ads" && <AdsPage ads={ads} setAds={setAds} showToast={showToast} />}
+          {page === "ads" && <AdsPage ads={ads} setAds={setAds} stores={stores} showToast={showToast} />}
           {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
           {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
           {page === "logs" && <LogsPage logs={logs} />}
@@ -261,10 +280,39 @@ function StatCard({ label, value, unit, icon, color }) {
 }
 
 // ─── 広告管理 ────────────────────────────────────────────
-function AdsPage({ ads, setAds, showToast }) {
+function AdsPage({ ads, setAds, stores, showToast }) {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", file: "", duration: "" });
+  const [selectedStores, setSelectedStores] = useState([]);
   const [editingAd, setEditingAd] = useState(null);
+  const saveAdStores = async (adId) => {
+  // 一旦既存の紐付けを削除
+  const { error: deleteError } = await supabase
+    .from("ad_stores")
+    .delete()
+    .eq("ad_id", adId);
+
+  if (deleteError) {
+    console.error("ad_stores delete error:", deleteError);
+    return;
+  }
+
+  // チェックされた店舗を登録
+  if (selectedStores.length > 0) {
+    const rows = selectedStores.map((storeCode) => ({
+      ad_id: adId,
+      store_code: storeCode,
+    }));
+
+    const { error: insertError } = await supabase
+      .from("ad_stores")
+      .insert(rows);
+
+    if (insertError) {
+      console.error("ad_stores insert error:", insertError);
+    }
+  }
+};
 
   const handleAdd = async () => {
   if (!form.title || !form.file) {
@@ -286,6 +334,8 @@ function AdsPage({ ads, setAds, showToast }) {
     console.error("広告登録エラー:", error);
     return showToast("広告登録に失敗しました", "error");
   }
+
+  await saveAdStores(data[0].id);
 
   const newAd = {
     id: data[0].id,
@@ -319,13 +369,27 @@ const handleDelete = async (id) => {
   showToast("広告を削除しました");
 };
 
-const handleEdit = (ad) => {
+const handleEdit = async (ad) => {
   setEditingAd(ad);
   setForm({
     title: ad.title,
     file: ad.file,
     duration: ad.duration,
   });
+
+  const { data, error } = await supabase
+    .from("ad_stores")
+    .select("store_code")
+    .eq("ad_id", ad.id);
+
+  if (error) {
+    console.error("配信店舗取得エラー:", error);
+    setSelectedStores([]);
+  } else {
+    console.log("編集時の配信店舗:", data);
+    setSelectedStores(data.map((row) => row.store_code));
+  }
+
   setShowForm(true);
 };
 
@@ -346,6 +410,8 @@ const handleUpdate = async () => {
     console.error("広告更新エラー:", error);
     return showToast("広告の更新に失敗しました", "error");
   }
+
+  await saveAdStores(editingAd.id);
 
   const updatedAd = {
     id: data[0].id,
@@ -381,10 +447,49 @@ const handleUpdate = async () => {
             <FormField label="動画ファイル名 *" value={form.file} onChange={(v) => setForm({ ...form, file: v })} placeholder="例: summer.mp4" />
             <FormField label="再生時間（秒）" value={form.duration} onChange={(v) => setForm({ ...form, duration: v })} placeholder="例: 30" type="number" />
           </div>
+          <div style={{ marginTop: 16 }}>
+  <div style={{ marginBottom: 8, fontWeight: 600 }}>
+    配信店舗
+  </div>
+
+  {stores.map((store) => (
+    <label
+      key={store.id}
+      style={{
+        display: "inline-block",
+        marginRight: 16,
+        cursor: "pointer",
+      }}
+    >
+      <input
+        type="checkbox"
+        checked={selectedStores.includes(store.code)}
+        onChange={(e) => {
+          if (e.target.checked) {
+            setSelectedStores([
+              ...selectedStores,
+              store.code,
+            ]);
+          } else {
+            setSelectedStores(
+              selectedStores.filter(
+                (code) => code !== store.code
+              )
+            );
+          }
+        }}
+      />
+
+      {" "}
+      {store.name}
+    </label>
+  ))}
+</div>
           <button
   style={styles.btnPrimary}
   onClick={editingAd ? handleUpdate : handleAdd}
 >
+
   {editingAd ? "更新する" : "登録する"}
 </button>
         </div>
