@@ -261,3 +261,5 @@ const handleUpdate = async () => {
     </div>
   );
 }
+export default AdsPage;
+
