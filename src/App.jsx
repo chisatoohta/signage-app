@@ -69,7 +69,9 @@ export default function App() {
   const isPlayerMode = window.location.pathname === "/player";
   const storeCode = new URLSearchParams(window.location.search).get("store");
   
-  const [page, setPage] = useState("dashboard");
+  const [page, setPage] = useState(() => {
+  return localStorage.getItem("currentPage") || "dashboard";
+});
   const [ads, setAds] = useState(initialAds);
   useEffect(() => {
   async function loadAds() {
@@ -148,6 +150,9 @@ console.log("Supabase stores error:", error);
 
   loadStores();
 }, []);
+useEffect(() => {
+  localStorage.setItem("currentPage", page);
+}, [page]);
 
   const showToast = (msg, type = "success") => {
     setToast({ msg, type });
