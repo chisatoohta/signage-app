@@ -1,7 +1,22 @@
 import { useState } from "react";
-import { supabase } from "../supabase";function AdsPage({ ads, setAds, stores, showToast }) {
+import { supabase } from "../supabase";
+function AdsPage({
+  ads,
+  setAds,
+  stores,
+  showToast,
+  styles,
+  FormField,
+}) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ title: "", file: "", duration: "" });
+  const [form, setForm] = useState({
+  title: "",
+  file: "",
+  duration: "",
+  start_date: "",
+  end_date: "",
+  priority: "1",
+});
   const [selectedStores, setSelectedStores] = useState([]);
   const [editingAd, setEditingAd] = useState(null);
   const saveAdStores = async (adId) => {
@@ -40,12 +55,15 @@ const handleAdd = async () => {
   const { data, error } = await supabase
     .from("ads")
     .insert([
-      {
-        title: form.title,
-        file_url: form.file,
-        duration: Number(form.duration) || 15,
-      },
-    ])
+  {
+    title: form.title,
+    file_url: form.file,
+    duration: Number(form.duration) || 15,
+    start_date: form.start_date,
+    end_date: form.end_date,
+    priority: Number(form.priority) || 1,
+  },
+])
     .select();
 
   if (error) {
@@ -60,6 +78,9 @@ const handleAdd = async () => {
     title: data[0].title,
     file: data[0].file_url || "未設定",
     duration: data[0].duration || 15,
+    start_date: data[0].start_date || "",
+end_date: data[0].end_date || "",
+priority: data[0].priority || 1,
     createdAt: data[0].created_at
       ? data[0].created_at.slice(0, 10)
       : "未設定",
@@ -67,7 +88,14 @@ const handleAdd = async () => {
   };
 
   setAds([...ads, newAd]);
-  setForm({ title: "", file: "", duration: "" });
+  setForm({
+  title: "",
+  file: "",
+  duration: "",
+  start_date: "",
+  end_date: "",
+  priority: "1",
+});
   setShowForm(false);
   showToast("広告を登録しました");
 };
@@ -90,10 +118,13 @@ const handleDelete = async (id) => {
 const handleEdit = async (ad) => {
   setEditingAd(ad);
   setForm({
-    title: ad.title,
-    file: ad.file,
-    duration: ad.duration,
-  });
+  title: ad.title,
+  file: ad.file,
+  duration: ad.duration,
+  start_date: ad.start_date || "",
+  end_date: ad.end_date || "",
+  priority: String(ad.priority || 1),
+});
 
   const { data, error } = await supabase
     .from("ad_stores")
@@ -117,10 +148,13 @@ const handleUpdate = async () => {
   const { data, error } = await supabase
     .from("ads")
     .update({
-      title: form.title,
-      file_url: form.file,
-      duration: Number(form.duration) || 15,
-    })
+  title: form.title,
+  file_url: form.file,
+  duration: Number(form.duration) || 15,
+  start_date: form.start_date,
+  end_date: form.end_date,
+  priority: Number(form.priority) || 1,
+})
     .eq("id", editingAd.id)
     .select();
 
@@ -136,6 +170,9 @@ const handleUpdate = async () => {
     title: data[0].title,
     file: data[0].file_url || "未設定",
     duration: data[0].duration || 15,
+    start_date: data[0].start_date || "",
+end_date: data[0].end_date || "",
+priority: data[0].priority || 1,
     createdAt: data[0].created_at
       ? data[0].created_at.slice(0, 10)
       : "未設定",
@@ -143,7 +180,14 @@ const handleUpdate = async () => {
   };
 
   setAds(ads.map((a) => (a.id === editingAd.id ? updatedAd : a)));
-  setForm({ title: "", file: "", duration: "" });
+  setForm({
+  title: "",
+  file: "",
+  duration: "",
+  start_date: "",
+  end_date: "",
+  priority: "1",
+});
   setEditingAd(null);
   setShowForm(false);
   showToast("広告を更新しました");
@@ -165,6 +209,26 @@ const handleUpdate = async () => {
             <FormField label="動画ファイル名 *" value={form.file} onChange={(v) => setForm({ ...form, file: v })} placeholder="例: summer.mp4" />
             <FormField label="再生時間（秒）" value={form.duration} onChange={(v) => setForm({ ...form, duration: v })} placeholder="例: 30" type="number" />
           </div>
+          <FormField
+  label="配信開始日"
+  value={form.start_date}
+  onChange={(v) => setForm({ ...form, start_date: v })}
+  type="date"
+/>
+
+<FormField
+  label="配信終了日"
+  value={form.end_date}
+  onChange={(v) => setForm({ ...form, end_date: v })}
+  type="date"
+/>
+
+<FormField
+  label="優先順位"
+  value={form.priority}
+  onChange={(v) => setForm({ ...form, priority: v })}
+  type="number"
+/>
           <div style={{ marginTop: 16 }}>
   <div style={{ marginBottom: 8, fontWeight: 600 }}>
     配信店舗

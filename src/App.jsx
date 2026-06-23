@@ -211,11 +211,34 @@ useEffect(() => {
         </header>
         <div style={styles.content}>
           {page === "dashboard" && <Dashboard ads={ads} stores={stores} logs={logs} deliveries={deliveries} />}
-          {page === "ads" && <AdsPage ads={ads} setAds={setAds} stores={stores} showToast={showToast} />}
+          {page === "ads" && (
+  <AdsPage
+    ads={ads}
+    setAds={setAds}
+    stores={stores}
+    showToast={showToast}
+    styles={styles}
+    FormField={FormField}
+  />
+)}
           {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
           {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
           {page === "logs" && <LogsPage logs={logs} />}
-          {page === "player" && <PlayerPage ads={ads} />}
+          {page === "player" && (
+  <PlayerPage
+    ads={ads.filter((ad) => {
+      const today = new Date().toISOString().split("T")[0];
+
+      const afterStart =
+        !ad.start_date || ad.start_date <= today;
+
+      const beforeEnd =
+        !ad.end_date || ad.end_date >= today;
+
+      return afterStart && beforeEnd;
+    })}
+  />
+)}
         </div>
       </main>
 
