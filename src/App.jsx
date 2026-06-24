@@ -129,7 +129,7 @@ console.log("Supabase ads error:", error);
 }, []);
   const [stores, setStores] = useState(initialStores);
   const [deliveries, setDeliveries] = useState(initialDeliveries);
-  const [logs] = useState(initialLogs);
+  const [logs, setLogs] = useState([]);
   const [toast, setToast] = useState(null);
   useEffect(() => {
   async function loadStores() {
@@ -149,6 +149,27 @@ console.log("Supabase stores error:", error);
   }
 
   loadStores();
+}, []);
+useEffect(() => {
+  async function loadLogs() {
+    const { data, error } = await supabase
+      .from("logs")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    console.log("Supabase logs data:", data);
+    console.log("Supabase logs error:", error);
+
+    if (error) {
+      console.error("ログ取得エラー:", error);
+      return;
+    }
+
+    setLogs(data);
+  }
+
+  loadLogs();
 }, []);
 useEffect(() => {
   localStorage.setItem("currentPage", page);
@@ -224,19 +245,23 @@ useEffect(() => {
           {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
           {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
           {page === "logs" && <LogsPage logs={logs} />}
-          {page === "player" && (
+         {page === "player" && (
   <PlayerPage
-    ads={ads.filter((ad) => {
-      const today = new Date().toISOString().split("T")[0];
+    ads={ads
+      .filter((ad) => {
+        const today = new Date().toISOString().split("T")[0];
 
-      const afterStart =
-        !ad.start_date || ad.start_date <= today;
+        const afterStart =
+          !ad.start_date || ad.start_date <= today;
 
-      const beforeEnd =
-        !ad.end_date || ad.end_date >= today;
+        const beforeEnd =
+          !ad.end_date || ad.end_date >= today;
 
-      return afterStart && beforeEnd;
-    })}
+        return afterStart && beforeEnd;
+      })
+      .sort((a, b) => {
+        return (Number(b.priority) || 1) - (Number(a.priority) || 1);
+      })}
   />
 )}
         </div>
@@ -253,37 +278,51 @@ useEffect(() => {
 
 // ─── ダッシュボード ──────────────────────────────────────
 function Dashboard({ ads, stores, logs, deliveries }) {
-  const todayLogs = logs.filter((l) => l.playedAt.startsWith("2026-06-08"));
-  const successRate = logs.length ? Math.round((logs.filter((l) => l.status === "成功").length / logs.length) * 100) : 0;
+  const today = new Date().toISOString().slice(0, 10);
+
+  const todayLogs = logs.filter((log) =>
+    log.created_at?.startsWith(today)
+  );
+
+  const totalPlays = logs.length;
+  const successRate = 100;
 
   return (
     <div style={styles.grid2}>
       {/* KPI カード */}
       <StatCard label="登録広告数" value={ads.length} unit="本" icon="▶" color="#38bdf8" />
       <StatCard label="店舗数" value={stores.length} unit="店" icon="◉" color="#a78bfa" />
-      <StatCard label="本日の再生数" value={todayLogs.length} unit="回" icon="≡" color="#34d399" />
-      <StatCard label="成功率" value={successRate} unit="%" icon="★" color="#fb923c" />
+      <StatCard label="総再生回数" value={totalPlays} unit="回" icon="≡" color="#34d399" />
+      <StatCard label="本日の再生数" value={todayLogs.length} unit="回" icon="★" color="#fb923c" />
 
       {/* 最近のログ */}
       <div style={{ ...styles.card, gridColumn: "1 / -1" }}>
         <div style={styles.cardHeader}>
           <span style={styles.cardTitle}>最近の再生ログ</span>
         </div>
+
         <table style={styles.table}>
           <thead>
             <tr>
-              {["日時", "広告名", "店舗", "ステータス"].map((h) => (
+              {["日時", "広告名", "店舗", "再生秒数"].map((h) => (
                 <th key={h} style={styles.th}>{h}</th>
               ))}
             </tr>
           </thead>
+
           <tbody>
             {logs.slice(0, 8).map((log) => (
               <tr key={log.id} style={styles.tr}>
-                <td style={styles.td}><span style={styles.mono}>{log.playedAt}</span></td>
-                <td style={styles.td}>{log.adTitle}</td>
-                <td style={styles.td}>{log.storeName}</td>
-                <td style={styles.td}><StatusBadge status={log.status} /></td>
+                <td style={styles.td}>
+                  <span style={styles.mono}>
+                    {log.created_at
+                      ? new Date(log.created_at).toLocaleString("ja-JP")
+                      : "-"}
+                  </span>
+                </td>
+                <td style={styles.td}>{log.ad_title || "-"}</td>
+                <td style={styles.td}>{log.store_name || log.store_code || "-"}</td>
+                <td style={styles.td}>{log.duration ? `${log.duration}秒` : "-"}</td>
               </tr>
             ))}
           </tbody>
@@ -292,7 +331,6 @@ function Dashboard({ ads, stores, logs, deliveries }) {
     </div>
   );
 }
-
 function StatCard({ label, value, unit, icon, color }) {
   return (
     <div style={{ ...styles.card, ...styles.statCard }}>
@@ -584,113 +622,64 @@ function DeliveryPage({ ads, stores, deliveries, setDeliveries, showToast }) {
 }
 
 // ─── 再生ログ ────────────────────────────────────────────
-function LogsPage({ logs }) {
-  const [filter, setFilter] = useState({ ad: "all", store: "all", status: "all" });
+function LogsPage() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const adNames = [...new Set(logs.map((l) => l.adTitle))];
-  const storeNames = [...new Set(logs.map((l) => l.storeName))];
+  useEffect(() => {
+    loadLogs();
+  }, []);
 
-  const filtered = logs.filter((l) => {
-    if (filter.ad !== "all" && l.adTitle !== filter.ad) return false;
-    if (filter.store !== "all" && l.storeName !== filter.store) return false;
-    if (filter.status !== "all" && l.status !== filter.status) return false;
-    return true;
-  });
+  async function loadLogs() {
+    setLoading(true);
+
+    const { data, error } = await supabase
+      .from("logs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    console.log("Supabase logs data:", data);
+    console.log("Supabase logs error:", error);
+
+    if (!error) {
+      setLogs(data || []);
+    }
+
+    setLoading(false);
+  }
 
   return (
     <div>
-      {/* フィルター */}
-      <div style={styles.filterBar}>
-        <FilterSelect label="広告" value={filter.ad} onChange={(v) => setFilter({ ...filter, ad: v })}
-          options={[{ value: "all", label: "すべて" }, ...adNames.map((n) => ({ value: n, label: n }))]} />
-        <FilterSelect label="店舗" value={filter.store} onChange={(v) => setFilter({ ...filter, store: v })}
-          options={[{ value: "all", label: "すべて" }, ...storeNames.map((n) => ({ value: n, label: n }))]} />
-        <FilterSelect label="ステータス" value={filter.status} onChange={(v) => setFilter({ ...filter, status: v })}
-          options={[{ value: "all", label: "すべて" }, { value: "成功", label: "成功" }, { value: "エラー", label: "エラー" }]} />
-        <span style={{ marginLeft: "auto", fontSize: 13, color: "#64748b" }}>{filtered.length} 件</span>
-      </div>
+      <h2>再生ログ</h2>
 
-      <div style={styles.card}>
-        <table style={styles.table}>
+      {loading ? (
+        <p>読み込み中...</p>
+      ) : logs.length === 0 ? (
+        <p>再生ログはまだありません。</p>
+      ) : (
+        <table border="1" cellPadding="8" style={{ borderCollapse: "collapse", width: "100%" }}>
           <thead>
             <tr>
-              {["日時", "広告名", "店舗", "ステータス"].map((h) => (
-                <th key={h} style={styles.th}>{h}</th>
-              ))}
+              <th>再生日時</th>
+              <th>広告名</th>
+              <th>店舗コード</th>
+              <th>店舗名</th>
+              <th>再生秒数</th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((log) => (
-              <tr key={log.id} style={styles.tr}>
-                <td style={styles.td}><span style={styles.mono}>{log.playedAt}</span></td>
-                <td style={styles.td}>{log.adTitle}</td>
-                <td style={styles.td}>{log.storeName}</td>
-                <td style={styles.td}><StatusBadge status={log.status} /></td>
+            {logs.map((log) => (
+              <tr key={log.id}>
+                <td>{log.created_at ? new Date(log.created_at).toLocaleString("ja-JP") : "-"}</td>
+                <td>{log.ad_title || "-"}</td>
+                <td>{log.store_code || "-"}</td>
+                <td>{log.store_name || "-"}</td>
+                <td>{log.duration ? `${log.duration}秒` : "-"}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </div>
-    </div>
-  );
-}
-function PlayerPage({ ads, storeCode }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  const currentAd = ads[currentIndex];
-
-  useEffect(() => {
-    if (!ads.length) return;
-
-    const duration = (currentAd?.duration || 15) * 1000;
-
-    const timer = setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % ads.length);
-    }, duration);
-
-    return () => clearTimeout(timer);
-  }, [currentIndex, ads, currentAd]);
-
-  if (!ads.length) {
-    return (
-      <div style={styles.playerEmpty}>
-        表示できる広告がありません
-      </div>
-    );
-  }
-
-  const isVideo = currentAd.file?.toLowerCase().endsWith(".mp4");
-
-  return (
-    <div style={styles.playerScreen}>
-      {isVideo ? (
-        <video
-          key={currentAd.id}
-          src={currentAd.file}
-          autoPlay
-          muted
-          playsInline
-          style={styles.playerMedia}
-        />
-      ) : (
-        <img
-          src={currentAd.file}
-          alt={currentAd.title}
-          style={styles.playerMedia}
-        />
       )}
-
-      <div style={styles.playerInfo}>
-        <div>{currentAd.title}</div>
-        {storeCode && (
-  <div style={{ fontSize: 12, opacity: 0.7 }}>
-    店舗コード：{storeCode}
-  </div>
-)}
-        <div style={{ fontSize: 12, opacity: 0.7 }}>
-          {currentIndex + 1} / {ads.length}・{currentAd.duration}秒
-        </div>
-      </div>
     </div>
   );
 }

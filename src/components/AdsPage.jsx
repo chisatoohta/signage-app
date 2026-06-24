@@ -59,9 +59,9 @@ const handleAdd = async () => {
     title: form.title,
     file_url: form.file,
     duration: Number(form.duration) || 15,
-    start_date: form.start_date,
-    end_date: form.end_date,
-    priority: Number(form.priority) || 1,
+    start_date: form.start_date || null,
+end_date: form.end_date || null,
+priority: Number(form.priority) || 1,
   },
 ])
     .select();
@@ -151,9 +151,9 @@ const handleUpdate = async () => {
   title: form.title,
   file_url: form.file,
   duration: Number(form.duration) || 15,
-  start_date: form.start_date,
-  end_date: form.end_date,
-  priority: Number(form.priority) || 1,
+ start_date: form.start_date || null,
+end_date: form.end_date || null,
+priority: Number(form.priority) || 1,
 })
     .eq("id", editingAd.id)
     .select();
