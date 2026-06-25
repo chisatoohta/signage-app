@@ -65,6 +65,69 @@ const NAV_ITEMS = [
   { id: "logs", label: "再生ログ", icon: "≡" },
   { id: "player", label: "プレイヤー", icon: "▣" },
 ];
+
+function PlayerPage({ ads = [], storeCode }) {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const currentAd = ads[currentIndex];
+
+  useEffect(() => {
+    if (!currentAd) return;
+
+    async function saveLog() {
+      await supabase.from("logs").insert([
+        {
+          ad_id: currentAd.id,
+          ad_title: currentAd.title,
+          duration: currentAd.duration,
+          store_code: storeCode || null,
+        },
+      ]);
+    }
+
+    saveLog();
+
+    const timer = setTimeout(() => {
+      setCurrentIndex((prev) => (prev + 1) % ads.length);
+    }, (currentAd.duration || 10) * 1000);
+
+    return () => clearTimeout(timer);
+  }, [currentAd, ads.length, storeCode]);
+
+  if (!currentAd) {
+    return (
+      <div style={{ color: "white", background: "black", height: "100vh", display: "grid", placeItems: "center" }}>
+        配信中の広告がありません
+      </div>
+    );
+  }
+
+  const isVideo = currentAd.file?.match(/\.(mp4|webm|mov)$/i);
+
+  console.log("currentAd:", currentAd);
+console.log("file_url:", currentAd.file_url);
+
+  return (
+    <div style={{ background: "black", width: "100vw", height: "100vh", overflow: "hidden" }}>
+      {isVideo ? (
+        <video
+  src={currentAd.file}
+          autoPlay
+          muted
+          playsInline
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
+      ) : (
+        <img
+  src={currentAd.file}
+          alt={currentAd.title}
+          style={{ width: "100%", height: "100%", objectFit: "contain" }}
+        />
+      )}
+    </div>
+  );
+}
+
 export default function App() {
   const isPlayerMode = window.location.pathname === "/player";
   const storeCode = new URLSearchParams(window.location.search).get("store");
@@ -247,22 +310,24 @@ useEffect(() => {
           {page === "logs" && <LogsPage logs={logs} />}
          {page === "player" && (
   <PlayerPage
-    ads={ads
-      .filter((ad) => {
-        const today = new Date().toISOString().split("T")[0];
+  ads={ads
+    .filter((ad) => {
+      const today = new Date().toISOString().split("T")[0];
 
-        const afterStart =
-          !ad.start_date || ad.start_date <= today;
+      const afterStart =
+        !ad.start_date || ad.start_date <= today;
 
-        const beforeEnd =
-          !ad.end_date || ad.end_date >= today;
+      const beforeEnd =
+        !ad.end_date || ad.end_date >= today;
 
-        return afterStart && beforeEnd;
-      })
-      .sort((a, b) => {
-        return (Number(b.priority) || 1) - (Number(a.priority) || 1);
-      })}
-  />
+      return afterStart && beforeEnd;
+    })
+    .sort((a, b) => {
+      return (Number(b.priority) || 1) - (Number(a.priority) || 1);
+    })}
+  stores={stores}
+  storeCode={storeCode}
+/>
 )}
         </div>
       </main>
