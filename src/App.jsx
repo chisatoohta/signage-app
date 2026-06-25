@@ -66,23 +66,33 @@ const NAV_ITEMS = [
   { id: "player", label: "プレイヤー", icon: "▣" },
 ];
 
-function PlayerPage({ ads = [], storeCode }) {
+function PlayerPage({ ads = [], stores = [], storeCode }) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const currentAd = ads[currentIndex];
+ const currentAd = ads[currentIndex];
+
+const currentStore = stores.find(
+  (store) =>
+    store.code?.toLowerCase().trim() === storeCode?.toLowerCase().trim()
+);
+
+console.log("storeCode:", storeCode);
+console.log("stores:", stores);
+console.log("currentStore:", currentStore);
 
   useEffect(() => {
     if (!currentAd) return;
 
     async function saveLog() {
       await supabase.from("logs").insert([
-        {
-          ad_id: currentAd.id,
-          ad_title: currentAd.title,
-          duration: currentAd.duration,
-          store_code: storeCode || null,
-        },
-      ]);
+  {
+    ad_id: currentAd.id,
+    ad_title: currentAd.title,
+    duration: currentAd.duration,
+    store_code: storeCode || null,
+    store_name: currentStore?.name || null,
+  },
+]);
     }
 
     saveLog();
@@ -244,7 +254,13 @@ useEffect(() => {
   };
 
   if (isPlayerMode) {
-  return <PlayerPage ads={ads} storeCode={storeCode} />;
+  return (
+  <PlayerPage
+    ads={ads}
+    stores={stores}
+    storeCode={storeCode}
+  />
+);
 }
 
   return (
