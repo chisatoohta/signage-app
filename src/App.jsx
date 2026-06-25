@@ -76,10 +76,6 @@ const currentStore = stores.find(
     store.code?.toLowerCase().trim() === storeCode?.toLowerCase().trim()
 );
 
-console.log("storeCode:", storeCode);
-console.log("stores:", stores);
-console.log("currentStore:", currentStore);
-
   useEffect(() => {
     if (!currentAd) return;
 
