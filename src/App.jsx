@@ -64,6 +64,11 @@ const NAV_ITEMS = [
   { id: "delivery", label: "配信設定", icon: "⬡" },
   { id: "logs", label: "再生ログ", icon: "≡" },
   { id: "player", label: "プレイヤー", icon: "▣" },
+  {
+  id: "reports",
+  label: "レポート",
+  icon: "📊",
+},
 ];
 
 function PlayerPage({ ads = [], stores = [], storeCode }) {
@@ -320,6 +325,9 @@ useEffect(() => {
           {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
           {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
           {page === "logs" && <LogsPage logs={logs} />}
+          {page === "reports" && (
+  <ReportsPage logs={logs} />
+)}
          {page === "player" && (
   <PlayerPage
   ads={ads
@@ -757,6 +765,73 @@ function LogsPage() {
           </tbody>
         </table>
       )}
+    </div>
+  );
+}
+
+function ReportsPage({ logs }) {
+  const storeCounts = logs.reduce((acc, log) => {
+    const storeName = log.store_name || log.store_code || "不明";
+    acc[storeName] = (acc[storeName] || 0) + 1;
+    return acc;
+  }, {});
+
+  const adCounts = logs.reduce((acc, log) => {
+    const adTitle = log.ad_title || "不明";
+    acc[adTitle] = (acc[adTitle] || 0) + 1;
+    return acc;
+  }, {});
+
+  const storeRanking = Object.entries(storeCounts).sort((a, b) => b[1] - a[1]);
+  const adRanking = Object.entries(adCounts).sort((a, b) => b[1] - a[1]);
+
+  return (
+    <div style={{ display: "grid", gap: 20 }}>
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <span style={styles.cardTitle}>店舗別再生回数</span>
+        </div>
+
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>店舗</th>
+              <th style={styles.th}>再生回数</th>
+            </tr>
+          </thead>
+          <tbody>
+            {storeRanking.map(([storeName, count]) => (
+              <tr key={storeName} style={styles.tr}>
+                <td style={styles.td}>{storeName}</td>
+                <td style={styles.td}>{count} 回</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={styles.card}>
+        <div style={styles.cardHeader}>
+          <span style={styles.cardTitle}>広告別再生回数</span>
+        </div>
+
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>広告</th>
+              <th style={styles.th}>再生回数</th>
+            </tr>
+          </thead>
+          <tbody>
+            {adRanking.map(([adTitle, count]) => (
+              <tr key={adTitle} style={styles.tr}>
+                <td style={styles.td}>{adTitle}</td>
+                <td style={styles.td}>{count} 回</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
