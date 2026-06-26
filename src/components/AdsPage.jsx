@@ -16,6 +16,7 @@ function AdsPage({
   start_date: "",
   end_date: "",
   priority: "1",
+   placement: "main",
 });
   const [selectedStores, setSelectedStores] = useState([]);
   const [editingAd, setEditingAd] = useState(null);
@@ -228,7 +229,23 @@ priority: data[0].priority || 1,
   value={form.priority}
   onChange={(v) => setForm({ ...form, priority: v })}
   type="number"
-/>
+  />
+
+  <div style={styles.field}>
+  <label>表示位置</label>
+
+  <select
+    value={form.placement}
+    onChange={(e) =>
+      setForm({ ...form, placement: e.target.value })
+    }
+    style={styles.input}
+  >
+    <option value="main">メイン広告</option>
+    <option value="banner">バナー広告</option>
+  </select>
+</div>
+
           <div style={{ marginTop: 16 }}>
   <div style={{ marginBottom: 8, fontWeight: 600 }}>
     配信店舗
