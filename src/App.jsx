@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import AdsPage from "./components/AdsPage";
+import ClientsPage from "./components/ClientsPage";
 
 // ─── 初期データ ───────────────────────────────────────────
 const initialAds = [
@@ -282,10 +283,21 @@ console.log("Supabase ads error:", error);
 
   loadAds();
 }, []);
-  const [stores, setStores] = useState(initialStores);
-  const [deliveries, setDeliveries] = useState(initialDeliveries);
-  const [logs, setLogs] = useState([]);
-  const [toast, setToast] = useState(null);
+ const [stores, setStores] = useState(initialStores);
+const [deliveries, setDeliveries] = useState(initialDeliveries);
+const [logs, setLogs] = useState([]);
+
+const [clients, setClients] = useState([]);
+
+const [newClient, setNewClient] = useState({
+  company_name: "",
+  contact_name: "",
+  phone: "",
+  email: "",
+  memo: "",
+});
+
+const [toast, setToast] = useState(null);
   useEffect(() => {
   async function loadStores() {
     const { data, error } = await supabase
@@ -304,6 +316,23 @@ console.log("Supabase stores error:", error);
   }
 
   loadStores();
+}, []);
+useEffect(() => {
+  async function loadClients() {
+    const { data, error } = await supabase
+      .from("clients")
+      .select("*")
+      .order("company_name");
+
+    if (error) {
+      console.error("広告主取得エラー:", error);
+      return;
+    }
+
+    setClients(data);
+  }
+
+  loadClients();
 }, []);
 useEffect(() => {
   async function loadLogs() {
@@ -334,6 +363,52 @@ useEffect(() => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 2800);
   };
+
+  async function addClient() {
+  if (!newClient.company_name) {
+    showToast("会社名を入力してください", "error");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("clients")
+    .insert([newClient])
+    .select();
+
+  if (error) {
+    console.error("広告主登録エラー:", error);
+    showToast("広告主登録に失敗しました", "error");
+    return;
+  }
+
+  setClients([...clients, data[0]]);
+
+  setNewClient({
+    company_name: "",
+    contact_name: "",
+    phone: "",
+    email: "",
+    memo: "",
+  });
+
+  showToast("広告主を登録しました");
+}
+
+async function deleteClient(id) {
+  const { error } = await supabase
+    .from("clients")
+    .delete()
+    .eq("id", id);
+
+  if (error) {
+    console.error("広告主削除エラー:", error);
+    showToast("広告主削除に失敗しました", "error");
+    return;
+  }
+
+  setClients(clients.filter((client) => client.id !== id));
+  showToast("広告主を削除しました");
+}
 
   if (isPlayerMode) {
   return (
@@ -394,18 +469,24 @@ useEffect(() => {
         <div style={styles.content}>
           {page === "dashboard" && <Dashboard ads={ads} stores={stores} logs={logs} deliveries={deliveries} />}
           {page === "ads" && (
-  <AdsPage
-    ads={ads}
-    setAds={setAds}
-    stores={stores}
-    showToast={showToast}
-    styles={styles}
-    FormField={FormField}
-  />
+<AdsPage
+  ads={ads}
+  setAds={setAds}
+  stores={stores}
+  clients={clients}
+  showToast={showToast}
+  styles={styles}
+  FormField={FormField}
+/>
 )}
-{page === "clients" && (
-  <ClientsPage />
-)}
+<ClientsPage
+  clients={clients}
+  newClient={newClient}
+  setNewClient={setNewClient}
+  addClient={addClient}
+  deleteClient={deleteClient}
+  styles={styles}
+/>
           {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
           {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
           {page === "logs" && <LogsPage logs={logs} />}
@@ -985,20 +1066,6 @@ function ReportsPage({ logs }) {
         createRanking(bannerLogs, "store_name"),
         "店舗"
       )}
-    </div>
-  );
-}
-
-function ClientsPage() {
-  return (
-    <div style={styles.card}>
-      <div style={styles.cardHeader}>
-        <span style={styles.cardTitle}>広告主管理</span>
-      </div>
-
-      <p style={{ color: "#94a3b8", margin: 0 }}>
-        広告主の登録・編集・連絡先管理をここに追加予定です。
-      </p>
     </div>
   );
 }

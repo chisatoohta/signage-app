@@ -4,19 +4,21 @@ function AdsPage({
   ads,
   setAds,
   stores,
+  clients = [],
   showToast,
   styles,
   FormField,
 }) {
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({
+ const [form, setForm] = useState({
   title: "",
   file: "",
   duration: "",
   start_date: "",
   end_date: "",
   priority: "1",
-   placement: "main",
+  placement: "main",
+  client_id: "",
 });
   const [selectedStores, setSelectedStores] = useState([]);
   const [editingAd, setEditingAd] = useState(null);
@@ -64,6 +66,7 @@ function AdsPage({
   end_date: form.end_date || null,
   priority: Number(form.priority) || 1,
   placement: form.placement || "main",
+  client_id: form.client_id || null,
     },
   ])
     .select();
@@ -159,6 +162,7 @@ const handleUpdate = async () => {
 end_date: form.end_date || null,
 priority: Number(form.priority) || 1,
 placement: form.placement || "main",
+client_id: form.client_id || null,
 })
     .eq("id", editingAd.id)
     .select();
@@ -235,7 +239,7 @@ priority: data[0].priority || 1,
   type="number"
   />
 
-  <div style={styles.field}>
+  <div style={styles.formField}>
   <label>表示位置</label>
 
   <select
@@ -247,6 +251,25 @@ priority: data[0].priority || 1,
   >
     <option value="main">メイン広告</option>
     <option value="banner">バナー広告</option>
+  </select>
+</div>
+<div style={styles.formField}>
+  <label>広告主</label>
+
+  <select
+    value={form.client_id}
+    onChange={(e) =>
+      setForm({ ...form, client_id: e.target.value })
+    }
+    style={styles.input}
+  >
+    <option value="">選択してください</option>
+
+    {clients.map((client) => (
+      <option key={client.id} value={client.id}>
+        {client.company_name}
+      </option>
+    ))}
   </select>
 </div>
 
