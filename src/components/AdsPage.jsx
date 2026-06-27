@@ -48,23 +48,24 @@ function AdsPage({
     }
   }
 };
-const handleAdd = async () => {
-  if (!form.title || !form.file) {
-    return showToast("タイトルとファイルURLを入力してください", "error");
-  }
+  const handleAdd = async () => {
+    if (!form.title || !form.file) {
+      return showToast("タイトルとファイルURLを入力してください", "error");
+    }
 
-  const { data, error } = await supabase
-    .from("ads")
-    .insert([
-  {
-    title: form.title,
-    file_url: form.file,
-    duration: Number(form.duration) || 15,
-    start_date: form.start_date || null,
-end_date: form.end_date || null,
-priority: Number(form.priority) || 1,
-  },
-])
+    const { data, error } = await supabase
+      .from("ads")
+      .insert([
+    {
+      title: form.title,
+      file_url: form.file,
+      duration: Number(form.duration) || 15,
+      start_date: form.start_date || null,
+  end_date: form.end_date || null,
+  priority: Number(form.priority) || 1,
+  placement: form.placement || "main",
+    },
+  ])
     .select();
 
   if (error) {
@@ -88,7 +89,7 @@ priority: data[0].priority || 1,
     thumbnail: "📺",
   };
 
-  setAds([...ads, newAd]);
+ setAds([...ads,  newAd]);
   setForm({
   title: "",
   file: "",
@@ -96,6 +97,7 @@ priority: data[0].priority || 1,
   start_date: "",
   end_date: "",
   priority: "1",
+  placement: "main",
 });
   setShowForm(false);
   showToast("広告を登録しました");
@@ -125,6 +127,7 @@ const handleEdit = async (ad) => {
   start_date: ad.start_date || "",
   end_date: ad.end_date || "",
   priority: String(ad.priority || 1),
+  placement: ad.placement || "main",
 });
 
   const { data, error } = await supabase
@@ -155,6 +158,7 @@ const handleUpdate = async () => {
  start_date: form.start_date || null,
 end_date: form.end_date || null,
 priority: Number(form.priority) || 1,
+placement: form.placement || "main",
 })
     .eq("id", editingAd.id)
     .select();

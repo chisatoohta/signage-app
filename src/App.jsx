@@ -255,15 +255,19 @@ console.log("Supabase ads error:", error);
     }
 
     const formattedAds = data.map((ad) => ({
-      id: ad.id,
-      title: ad.title,
-      file: ad.file_url || "未設定",
-      duration: ad.duration || 15,
-      createdAt: ad.created_at
-        ? ad.created_at.slice(0, 10)
-        : "未設定",
-      thumbnail: "📺",
-    }));
+  id: ad.id,
+  title: ad.title,
+  file: ad.file_url || "未設定",
+  duration: ad.duration || 15,
+  start_date: ad.start_date || "",
+  end_date: ad.end_date || "",
+  priority: ad.priority || 1,
+  placement: ad.placement || "main",
+  createdAt: ad.created_at
+    ? ad.created_at.slice(0, 10)
+    : "未設定",
+  thumbnail: "📺",
+}));
 
     setAds(formattedAds);
   }
@@ -439,15 +443,65 @@ function Dashboard({ ads, stores, logs, deliveries }) {
   );
 
   const totalPlays = logs.length;
+  const mainAds = ads.filter(
+  (ad) => (ad.placement || "main") === "main"
+);
+
+const bannerAds = ads.filter(
+  (ad) => ad.placement === "banner"
+);
   const successRate = 100;
 
   return (
     <div style={styles.grid2}>
       {/* KPI カード */}
-      <StatCard label="登録広告数" value={ads.length} unit="本" icon="▶" color="#38bdf8" />
-      <StatCard label="店舗数" value={stores.length} unit="店" icon="◉" color="#a78bfa" />
-      <StatCard label="総再生回数" value={totalPlays} unit="回" icon="≡" color="#34d399" />
-      <StatCard label="本日の再生数" value={todayLogs.length} unit="回" icon="★" color="#fb923c" />
+      <StatCard
+  label="登録広告数"
+  value={ads.length}
+  unit="本"
+  icon="▶"
+  color="#38bdf8"
+/>
+
+<StatCard
+  label="メイン広告"
+  value={mainAds.length}
+  unit="本"
+  icon="🖥"
+  color="#6366f1"
+/>
+
+<StatCard
+  label="バナー広告"
+  value={bannerAds.length}
+  unit="本"
+  icon="📢"
+  color="#ec4899"
+/>
+
+<StatCard
+  label="店舗数"
+  value={stores.length}
+  unit="店"
+  icon="◉"
+  color="#a78bfa"
+/>
+
+<StatCard
+  label="総再生回数"
+  value={totalPlays}
+  unit="回"
+  icon="≡"
+  color="#34d399"
+/>
+
+<StatCard
+  label="本日の再生数"
+  value={todayLogs.length}
+  unit="回"
+  icon="★"
+  color="#fb923c"
+/>
 
       {/* 最近のログ */}
       <div style={{ ...styles.card, gridColumn: "1 / -1" }}>
