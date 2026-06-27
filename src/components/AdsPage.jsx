@@ -303,7 +303,23 @@ priority: data[0].priority || 1,
           <div key={ad.id} style={styles.adCard}>
             <div style={styles.adThumb}>{ad.thumbnail}</div>
             <div style={styles.adInfo}>
-              <div style={styles.adTitle}>{ad.title}</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+  <div style={styles.adTitle}>{ad.title}</div>
+
+  <span
+    style={{
+      fontSize: 11,
+      padding: "2px 8px",
+      borderRadius: 999,
+      background: ad.placement === "banner" ? "#78350f" : "#1e3a8a",
+      color: ad.placement === "banner" ? "#fbbf24" : "#bfdbfe",
+      fontWeight: 700,
+      whiteSpace: "nowrap",
+    }}
+  >
+    {ad.placement === "banner" ? "バナー" : "メイン"}
+  </span>
+</div>
               <div style={styles.adMeta}>
   {ad.file?.toLowerCase().endsWith(".mp4") ? (
     <video

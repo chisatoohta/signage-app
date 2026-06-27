@@ -60,6 +60,11 @@ const newId = (arr) => Math.max(0, ...arr.map((x) => x.id)) + 1;
 const NAV_ITEMS = [
   { id: "dashboard", label: "ダッシュボード", icon: "◈" },
   { id: "ads", label: "広告管理", icon: "▶" },
+  {
+  id: "clients",
+  label: "広告主管理",
+  icon: "🏢",
+},
   { id: "stores", label: "店舗管理", icon: "◉" },
   { id: "delivery", label: "配信設定", icon: "⬡" },
   { id: "logs", label: "再生ログ", icon: "≡" },
@@ -255,19 +260,15 @@ console.log("Supabase ads error:", error);
     }
 
     const formattedAds = data.map((ad) => ({
-  id: ad.id,
-  title: ad.title,
-  file: ad.file_url || "未設定",
-  duration: ad.duration || 15,
-  start_date: ad.start_date || "",
-  end_date: ad.end_date || "",
-  priority: ad.priority || 1,
-  placement: ad.placement || "main",
-  createdAt: ad.created_at
-    ? ad.created_at.slice(0, 10)
-    : "未設定",
-  thumbnail: "📺",
-}));
+      id: ad.id,
+      title: ad.title,
+      file: ad.file_url || "未設定",
+      duration: ad.duration || 15,
+      createdAt: ad.created_at
+        ? ad.created_at.slice(0, 10)
+        : "未設定",
+      thumbnail: "📺",
+    }));
 
     setAds(formattedAds);
   }
@@ -395,6 +396,9 @@ useEffect(() => {
     FormField={FormField}
   />
 )}
+{page === "clients" && (
+  <ClientsPage />
+)}
           {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
           {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
           {page === "logs" && <LogsPage logs={logs} />}
@@ -422,6 +426,7 @@ useEffect(() => {
   storeCode={storeCode}
 />
 )}
+
         </div>
       </main>
 
@@ -893,68 +898,100 @@ function LogsPage() {
 }
 
 function ReportsPage({ logs }) {
-  const storeCounts = logs.reduce((acc, log) => {
-    const storeName = log.store_name || log.store_code || "不明";
-    acc[storeName] = (acc[storeName] || 0) + 1;
-    return acc;
-  }, {});
+  const mainLogs = logs.filter((log) => (log.placement || "main") === "main");
+  const bannerLogs = logs.filter((log) => log.placement === "banner");
 
-  const adCounts = logs.reduce((acc, log) => {
-    const adTitle = log.ad_title || "不明";
-    acc[adTitle] = (acc[adTitle] || 0) + 1;
-    return acc;
-  }, {});
+  const createRanking = (targetLogs, keyName, fallback = "不明") => {
+    const counts = targetLogs.reduce((acc, log) => {
+      const name = log[keyName] || fallback;
+      acc[name] = (acc[name] || 0) + 1;
+      return acc;
+    }, {});
 
-  const storeRanking = Object.entries(storeCounts).sort((a, b) => b[1] - a[1]);
-  const adRanking = Object.entries(adCounts).sort((a, b) => b[1] - a[1]);
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  };
+
+  const renderRankingTable = (title, ranking, label) => (
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <span style={styles.cardTitle}>{title}</span>
+      </div>
+
+      <table style={styles.table}>
+        <thead>
+          <tr>
+            <th style={styles.th}>{label}</th>
+            <th style={styles.th}>再生回数</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ranking.length === 0 ? (
+            <tr>
+              <td style={styles.td} colSpan="2">データがありません</td>
+            </tr>
+          ) : (
+            ranking.map(([name, count]) => (
+              <tr key={name} style={styles.tr}>
+                <td style={styles.td}>{name}</td>
+                <td style={styles.td}>{count} 回</td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  );
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
       <div style={styles.card}>
         <div style={styles.cardHeader}>
-          <span style={styles.cardTitle}>店舗別再生回数</span>
+          <span style={styles.cardTitle}>広告枠別サマリー</span>
         </div>
 
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>店舗</th>
-              <th style={styles.th}>再生回数</th>
-            </tr>
-          </thead>
-          <tbody>
-            {storeRanking.map(([storeName, count]) => (
-              <tr key={storeName} style={styles.tr}>
-                <td style={styles.td}>{storeName}</td>
-                <td style={styles.td}>{count} 回</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <span style={styles.cardTitle}>広告別再生回数</span>
+        <div style={styles.grid2}>
+          <StatCard label="メイン広告再生数" value={mainLogs.length} unit="回" icon="🖥" color="#6366f1" />
+          <StatCard label="バナー広告再生数" value={bannerLogs.length} unit="回" icon="📢" color="#ec4899" />
         </div>
-
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={styles.th}>広告</th>
-              <th style={styles.th}>再生回数</th>
-            </tr>
-          </thead>
-          <tbody>
-            {adRanking.map(([adTitle, count]) => (
-              <tr key={adTitle} style={styles.tr}>
-                <td style={styles.td}>{adTitle}</td>
-                <td style={styles.td}>{count} 回</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
+
+      {renderRankingTable(
+        "メイン広告｜広告別再生回数",
+        createRanking(mainLogs, "ad_title"),
+        "広告"
+      )}
+
+      {renderRankingTable(
+        "メイン広告｜店舗別再生回数",
+        createRanking(mainLogs, "store_name"),
+        "店舗"
+      )}
+
+      {renderRankingTable(
+        "バナー広告｜広告別再生回数",
+        createRanking(bannerLogs, "ad_title"),
+        "広告"
+      )}
+
+      {renderRankingTable(
+        "バナー広告｜店舗別再生回数",
+        createRanking(bannerLogs, "store_name"),
+        "店舗"
+      )}
+    </div>
+  );
+}
+
+function ClientsPage() {
+  return (
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <span style={styles.cardTitle}>広告主管理</span>
+      </div>
+
+      <p style={{ color: "#94a3b8", margin: 0 }}>
+        広告主の登録・編集・連絡先管理をここに追加予定です。
+      </p>
     </div>
   );
 }
