@@ -260,15 +260,22 @@ console.log("Supabase ads error:", error);
     }
 
     const formattedAds = data.map((ad) => ({
-      id: ad.id,
-      title: ad.title,
-      file: ad.file_url || "未設定",
-      duration: ad.duration || 15,
-      createdAt: ad.created_at
-        ? ad.created_at.slice(0, 10)
-        : "未設定",
-      thumbnail: "📺",
-    }));
+  id: ad.id,
+  title: ad.title,
+  file: ad.file_url || "未設定",
+  duration: ad.duration || 15,
+
+  start_date: ad.start_date || "",
+  end_date: ad.end_date || "",
+  priority: ad.priority || 1,
+  placement: ad.placement || "main",
+
+  createdAt: ad.created_at
+    ? ad.created_at.slice(0, 10)
+    : "未設定",
+
+  thumbnail: "📺",
+}));
 
     setAds(formattedAds);
   }
