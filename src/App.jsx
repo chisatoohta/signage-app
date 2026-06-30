@@ -268,6 +268,7 @@ console.log("Supabase ads error:", error);
     const formattedAds = data.map((ad) => ({
   id: ad.id,
   title: ad.title,
+  client_id: ad.client_id || null,
   clientName: ad.clients?.company_name || "未設定",
   file: ad.file_url || "未設定",
   duration: ad.duration || 15,
@@ -401,6 +402,16 @@ useEffect(() => {
 }
 
 async function deleteClient(id) {
+  const linkedAds = ads.filter((ad) => ad.client_id === id);
+
+  if (linkedAds.length > 0) {
+    showToast(
+      `この広告主には広告が${linkedAds.length}件紐付いているため削除できません`,
+      "error"
+    );
+    return;
+  }
+
   const { error } = await supabase
     .from("clients")
     .delete()
@@ -414,6 +425,39 @@ async function deleteClient(id) {
 
   setClients(clients.filter((client) => client.id !== id));
   showToast("広告主を削除しました");
+}
+
+async function updateClient(id, onDone) {
+  if (!newClient.company_name) {
+    showToast("会社名を入力してください", "error");
+    return;
+  }
+
+  const { data, error } = await supabase
+    .from("clients")
+    .update(newClient)
+    .eq("id", id)
+    .select();
+
+  if (error) {
+    console.error("広告主更新エラー:", error);
+    showToast("広告主更新に失敗しました", "error");
+    return;
+  }
+
+  setClients(clients.map((client) => (client.id === id ? data[0] : client)));
+
+  setNewClient({
+    company_name: "",
+    contact_name: "",
+    phone: "",
+    email: "",
+    memo: "",
+  });
+
+  showToast("広告主を更新しました");
+
+  if (onDone) onDone();
 }
 
   if (isPlayerMode) {
@@ -492,6 +536,7 @@ async function deleteClient(id) {
   setNewClient={setNewClient}
   addClient={addClient}
   deleteClient={deleteClient}
+  updateClient={updateClient}
   styles={styles}
 />
 )}
