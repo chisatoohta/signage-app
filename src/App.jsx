@@ -246,7 +246,12 @@ if (isPlayerMode && storeCode) {
 } else {
   const result = await supabase
     .from("ads")
-    .select("*")
+.select(`
+  *,
+  clients (
+    company_name
+  )
+`)
     .order("id", { ascending: true });
 
   error = result.error;
@@ -263,6 +268,7 @@ console.log("Supabase ads error:", error);
     const formattedAds = data.map((ad) => ({
   id: ad.id,
   title: ad.title,
+  clientName: ad.clients?.company_name || "未設定",
   file: ad.file_url || "未設定",
   duration: ad.duration || 15,
 
@@ -479,6 +485,7 @@ async function deleteClient(id) {
   FormField={FormField}
 />
 )}
+{page === "clients" && (
 <ClientsPage
   clients={clients}
   newClient={newClient}
@@ -487,6 +494,7 @@ async function deleteClient(id) {
   deleteClient={deleteClient}
   styles={styles}
 />
+)}
           {page === "stores" && <StoresPage stores={stores} setStores={setStores} showToast={showToast} />}
           {page === "delivery" && <DeliveryPage ads={ads} stores={stores} deliveries={deliveries} setDeliveries={setDeliveries} showToast={showToast} />}
           {page === "logs" && <LogsPage logs={logs} />}

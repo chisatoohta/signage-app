@@ -343,6 +343,10 @@ priority: data[0].priority || 1,
     {ad.placement === "banner" ? "バナー" : "メイン"}
   </span>
 </div>
+
+<div style={{ fontSize: 13, color: "#64748b" }}>
+  🏢 {ad.clientName}
+</div>
               <div style={styles.adMeta}>
   {ad.file?.toLowerCase().endsWith(".mp4") ? (
     <video
