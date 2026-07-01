@@ -353,36 +353,94 @@ priority: data[0].priority || 1,
       src={ad.file}
       muted
       preload="metadata"
-      style={{
-        width: 120,
-        height: 80,
-        objectFit: "cover",
-        borderRadius: 8,
-        background: "#000",
-      }}
+     style={{
+  width: 150,
+  height: 100,
+  objectFit: "cover",
+  borderRadius: 10,
+  border: "1px solid #24304f",
+  background: "#000",
+  display: "block",
+  margin: "0 auto",
+}}
     />
   ) : (
     <img
       src={ad.file}
       alt={ad.title}
       style={{
-        width: 120,
-        height: 80,
-        objectFit: "cover",
-        borderRadius: 8,
-      }}
+  width: 150,
+  height: 100,
+  objectFit: "cover",
+  borderRadius: 10,
+  border: "1px solid #24304f",
+  background: "#000",
+  display: "block",
+  margin: "0 auto",
+}}
     />
   )}
 </div>
-              <div style={styles.adMeta}>
-                <span style={styles.badge}>▶ {ad.duration}秒</span>
-                <span style={{ ...styles.badge, marginLeft: 6 }}>📅 {ad.createdAt}</span>
-              </div>
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-  <button style={styles.btnPrimary} onClick={() => handleEdit(ad)}>編集</button>
-  <button style={styles.btnDanger} onClick={() => handleDelete(ad.id)}>削除</button>
+             <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 6,
+    marginTop: 8,
+  }}
+>
+  <span style={styles.badge}>
+    {ad.placement === "banner" ? "🟨 バナー" : "🟦 メイン"}
+  </span>
+
+  <span style={styles.badge}>
+    {ad.file?.toLowerCase().endsWith(".mp4") ? "🎬 動画" : "🖼 静止画"}
+  </span>
+
+  <span style={styles.badge}>⏱ {ad.duration}秒</span>
+
+  <span style={styles.badge}>⭐ 優先{ad.priority}</span>
 </div>
+
+<div style={{ marginTop: 8 }}>
+  <span style={styles.badge}>
+    📅{" "}
+    {!ad.start_date && !ad.end_date
+      ? "未設定"
+      : `${ad.start_date || ""} ～ ${ad.end_date || ""}`}
+  </span>
+</div>
+<hr
+  style={{
+    border: "none",
+    borderTop: "1px solid #24304f",
+    margin: "16px 0 12px",
+  }}
+/>
+
+<div
+  style={{
+    display: "flex",
+    justifyContent: "center",
+    gap: 12,
+  }}
+>
+  <button
+    style={styles.btnPrimary}
+    onClick={() => handleEdit(ad)}
+  >
+    ✏ 編集
+  </button>
+
+  <button
+    style={styles.btnDanger}
+    onClick={() => handleDelete(ad.id)}
+  >
+    🗑 削除
+  </button>
+</div>
+            </div>
+            
           </div>
         ))}
       </div>
