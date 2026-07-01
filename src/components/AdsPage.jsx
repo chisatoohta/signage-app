@@ -130,6 +130,42 @@ priority: data[0].priority || 1,
 };
 
 const handleDelete = async (id) => {
+  const { data: linkedStores, error: storeError } = await supabase
+    .from("ad_stores")
+    .select("id")
+    .eq("ad_id", id);
+  if (storeError) {
+    console.error("配信設定確認エラー:", storeError);
+    return showToast("配信設定の確認に失敗しました", "error");
+  }
+
+  if (linkedStores.length > 0) {
+    return showToast(
+      `この広告は${linkedStores.length}件の配信設定で使用中のため削除できません`,
+      "error"
+    );
+  }
+
+  const { data: linkedLogs, error: logError } = await supabase
+    .from("logs")
+    .select("id")
+    .eq("ad_id", id)
+    .limit(1);
+
+  if (logError) {
+    console.error("再生ログ確認エラー:", logError);
+    return showToast("再生ログの確認に失敗しました", "error");
+  }
+
+  if (linkedLogs.length > 0) {
+    return showToast(
+      "この広告には再生ログがあるため削除できません",
+      "error"
+    );
+  }
+
+  if (!window.confirm("この広告を削除しますか？")) return;
+
   const { error } = await supabase
     .from("ads")
     .delete()
