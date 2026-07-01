@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../supabase";
 function AdsPage({
   ads,
@@ -22,6 +22,29 @@ function AdsPage({
 });
   const [selectedStores, setSelectedStores] = useState([]);
   const [editingAd, setEditingAd] = useState(null);
+  const [storeCounts, setStoreCounts] = useState({});
+  useEffect(() => {
+  async function loadStoreCounts() {
+    const { data, error } = await supabase
+      .from("ad_stores")
+      .select("ad_id");
+
+    if (error) {
+      console.error("配信店舗数取得エラー:", error);
+      return;
+    }
+
+    const counts = {};
+
+    data.forEach((row) => {
+      counts[row.ad_id] = (counts[row.ad_id] || 0) + 1;
+    });
+
+    setStoreCounts(counts);
+  }
+
+  loadStoreCounts();
+}, []);
   const saveAdStores = async (adId) => {
   // 一旦既存の紐付けを削除
   const { error: deleteError } = await supabase
@@ -324,10 +347,20 @@ priority: data[0].priority || 1,
       <div style={styles.cardGrid}>
         {ads.map((ad) => (
           <div key={ad.id} style={styles.adCard}>
-            <div style={styles.adThumb}>{ad.thumbnail}</div>
-            <div style={styles.adInfo}>
+  <div style={styles.adInfo}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-  <div style={styles.adTitle}>{ad.title}</div>
+  <div
+  style={{
+    ...styles.adTitle,
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+    maxWidth: 220,
+  }}
+  title={ad.title}
+>
+  {ad.title}
+</div>
 
   <span
     style={{
@@ -408,6 +441,11 @@ priority: data[0].priority || 1,
     {!ad.start_date && !ad.end_date
       ? "未設定"
       : `${ad.start_date || ""} ～ ${ad.end_date || ""}`}
+  </span>
+</div>
+<div style={{ marginTop: 8 }}>
+  <span style={styles.badge}>
+    🏪 配信店舗：{storeCounts[ad.id] || 0}店舗
   </span>
 </div>
 <hr
