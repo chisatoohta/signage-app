@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import AdsPage from "./components/AdsPage";
 import ClientsPage from "./components/ClientsPage";
+import FormField from "./components/FormField";
+import NAV_ITEMS from "./constants/navItems";
 
 // ─── 初期データ ───────────────────────────────────────────
 const initialAds = [
@@ -58,24 +60,6 @@ const initialLogs = generateLogs();
 const newId = (arr) => Math.max(0, ...arr.map((x) => x.id)) + 1;
 
 // ─── コンポーネント ────────────────────────────────────────
-const NAV_ITEMS = [
-  { id: "dashboard", label: "ダッシュボード", icon: "◈" },
-  { id: "ads", label: "広告管理", icon: "▶" },
-  {
-  id: "clients",
-  label: "広告主管理",
-  icon: "🏢",
-},
-  { id: "stores", label: "店舗管理", icon: "◉" },
-  { id: "delivery", label: "配信設定", icon: "⬡" },
-  { id: "logs", label: "再生ログ", icon: "≡" },
-  { id: "player", label: "プレイヤー", icon: "▣" },
-  {
-  id: "reports",
-  label: "レポート",
-  icon: "📊",
-},
-];
 
 function PlayerPage({ ads = [], stores = [], storeCode }) {
   const mainAds = ads.filter((ad) => (ad.placement || "main") === "main");
@@ -1129,21 +1113,6 @@ function StatusBadge({ status }) {
     <span style={{ ...styles.statusBadge, ...(status === "成功" ? styles.statusOk : styles.statusErr) }}>
       {status === "成功" ? "● 成功" : "✕ エラー"}
     </span>
-  );
-}
-
-function FormField({ label, value, onChange, placeholder, type = "text" }) {
-  return (
-    <div style={styles.formField}>
-      <label style={styles.label}>{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={styles.input}
-      />
-    </div>
   );
 }
 
