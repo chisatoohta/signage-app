@@ -2,9 +2,99 @@ import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 
 function PlayerPage({ ads = [], stores = [], storeCode, deliveryRules = [] }) {
-  const mainAds = ads.filter((ad) => (ad.placement || "main") === "main");
-  const bannerAds = ads.filter((ad) => ad.placement === "banner");
+  // この店舗で有効な配信ルールだけ取得
+// 今日の曜日
+const today = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+  new Date().getDay()
+];
 
+// 現在時刻（HH:mm）
+const now = new Date();
+const currentTime = now.toTimeString().slice(0, 5);
+
+// 今日の日付（YYYY-MM-DD）
+const todayDate = now.toISOString().split("T")[0];
+
+// この店舗・曜日・時間・期間で有効なルール
+const activeRules = deliveryRules.filter((rule) => {
+  if (!rule.enabled) return false;
+
+  if (
+    storeCode &&
+    rule.store_code?.toLowerCase().trim() !==
+      storeCode?.toLowerCase().trim()
+  ) {
+    return false;
+  }
+
+  if (
+    rule.days_of_week &&
+    rule.days_of_week.length > 0 &&
+    !rule.days_of_week.includes(today)
+  ) {
+    return false;
+  }
+
+  if (rule.start_time && currentTime < rule.start_time.slice(0, 5)) {
+    return false;
+  }
+
+  if (rule.end_time && currentTime > rule.end_time.slice(0, 5)) {
+    return false;
+  }
+
+  if (rule.start_date && todayDate < rule.start_date) {
+    return false;
+  }
+
+  if (rule.end_date && todayDate > rule.end_date) {
+    return false;
+  }
+
+  return true;
+});
+
+// ルールに紐づく広告を、優先順位付きで取得
+const candidateAds = activeRules
+  .map((rule) => {
+    const ad = ads.find((ad) => String(ad.id) === String(rule.ad_id));
+    if (!ad) return null;
+
+    return {
+      ...ad,
+      rulePriority: Number(rule.priority) || 1,
+    };
+  })
+  .filter(Boolean);
+
+// メイン広告候補
+const mainCandidates = candidateAds.filter(
+  (ad) => (ad.placement || "main") === "main"
+);
+
+// バナー広告候補
+const bannerCandidates = candidateAds.filter(
+  (ad) => ad.placement === "banner"
+);
+
+// 一番高い優先順位だけを残す
+const maxMainPriority =
+  mainCandidates.length > 0
+    ? Math.max(...mainCandidates.map((ad) => ad.rulePriority))
+    : null;
+
+const maxBannerPriority =
+  bannerCandidates.length > 0
+    ? Math.max(...bannerCandidates.map((ad) => ad.rulePriority))
+    : null;
+
+const mainAds = mainCandidates.filter(
+  (ad) => ad.rulePriority === maxMainPriority
+);
+
+const bannerAds = bannerCandidates.filter(
+  (ad) => ad.rulePriority === maxBannerPriority
+);
   const [mainIndex, setMainIndex] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
 

@@ -5,6 +5,7 @@ function AdsPage({
   setAds,
   stores,
   clients = [],
+  deliveryRules = [],
   showToast,
   styles,
   FormField,
@@ -277,27 +278,7 @@ priority: data[0].priority || 1,
             <FormField label="動画ファイル名 *" value={form.file} onChange={(v) => setForm({ ...form, file: v })} placeholder="例: summer.mp4" />
             <FormField label="再生時間（秒）" value={form.duration} onChange={(v) => setForm({ ...form, duration: v })} placeholder="例: 30" type="number" />
           </div>
-          <FormField
-  label="配信開始日"
-  value={form.start_date}
-  onChange={(v) => setForm({ ...form, start_date: v })}
-  type="date"
-/>
-
-<FormField
-  label="配信終了日"
-  value={form.end_date}
-  onChange={(v) => setForm({ ...form, end_date: v })}
-  type="date"
-/>
-
-<FormField
-  label="優先順位"
-  value={form.priority}
-  onChange={(v) => setForm({ ...form, priority: v })}
-  type="number"
-  />
-
+        
   <div style={styles.formField}>
   <label>表示位置</label>
 
@@ -468,20 +449,17 @@ priority: data[0].priority || 1,
 
   <span style={styles.badge}>⏱ {ad.duration}秒</span>
 
-  <span style={styles.badge}>⭐ 優先{ad.priority}</span>
 </div>
 
 <div style={{ marginTop: 8 }}>
   <span style={styles.badge}>
-    📅{" "}
-    {!ad.start_date && !ad.end_date
-      ? "未設定"
-      : `${ad.start_date || ""} ～ ${ad.end_date || ""}`}
-  </span>
-</div>
-<div style={{ marginTop: 8 }}>
-  <span style={styles.badge}>
-    🏪 配信店舗：{storeCounts[ad.id] || 0}店舗
+    📡 配信ルール：
+    {
+      deliveryRules.filter(
+        (rule) => String(rule.ad_id) === String(ad.id)
+      ).length
+    }
+    件
   </span>
 </div>
 <hr

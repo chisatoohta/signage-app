@@ -394,9 +394,11 @@ async function updateClient(id, onDone) {
   setAds={setAds}
   stores={stores}
   clients={clients}
+  deliveryRules={deliveryRules}
   showToast={showToast}
   styles={styles}
   FormField={FormField}
+
 />
 )}
 {page === "clients" && (
