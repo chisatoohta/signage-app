@@ -13,6 +13,7 @@ const DAYS = [
 
 function DeliveryPage({ ads, stores, showToast, styles }) {
   const [rules, setRules] = useState([]);
+  const [editingRuleId, setEditingRuleId] = useState(null);
   const [form, setForm] = useState({
     ad_id: "",
     store_code: "",
@@ -56,45 +57,72 @@ function DeliveryPage({ ads, stores, showToast, styles }) {
   };
 
   async function addRule() {
-    if (!form.ad_id) return showToast("広告を選択してください", "error");
-    if (!form.store_code) return showToast("店舗を選択してください", "error");
+  if (!form.ad_id) return showToast("広告を選択してください", "error");
+  if (!form.store_code) return showToast("店舗を選択してください", "error");
 
-    const { error } = await supabase.from("delivery_rules").insert([
-      {
-        ad_id: Number(form.ad_id),
-        store_code: form.store_code,
-        days_of_week: form.days_of_week,
-        start_time: form.start_time || null,
-        end_time: form.end_time || null,
-        start_date: form.start_date || null,
-        end_date: form.end_date || null,
-        priority: Number(form.priority) || 1,
-        enabled: form.enabled,
-      },
-    ]);
+  const payload = {
+    ad_id: Number(form.ad_id),
+    store_code: form.store_code,
+    days_of_week: form.days_of_week,
+    start_time: form.start_time || null,
+    end_time: form.end_time || null,
+    start_date: form.start_date || null,
+    end_date: form.end_date || null,
+    priority: Number(form.priority) || 1,
+    enabled: form.enabled,
+  };
 
-    if (error) {
-      console.error("配信ルール登録エラー:", error);
-      showToast("配信ルール登録に失敗しました", "error");
-      return;
-    }
+  const { error } = editingRuleId
+    ? await supabase
+        .from("delivery_rules")
+        .update(payload)
+        .eq("id", editingRuleId)
+    : await supabase.from("delivery_rules").insert([payload]);
 
-    showToast("配信ルールを登録しました");
-
-    setForm({
-      ad_id: "",
-      store_code: "",
-      days_of_week: [],
-      start_time: "",
-      end_time: "",
-      start_date: "",
-      end_date: "",
-      priority: "1",
-      enabled: true,
-    });
-
-    loadRules();
+  if (error) {
+    console.error("配信ルール保存エラー:", error);
+    showToast("配信ルール保存に失敗しました", "error");
+    return;
   }
+
+  showToast(editingRuleId ? "配信ルールを更新しました" : "配信ルールを登録しました");
+
+  setEditingRuleId(null);
+
+  setForm({
+    ad_id: "",
+    store_code: "",
+    days_of_week: [],
+    start_time: "",
+    end_time: "",
+    start_date: "",
+    end_date: "",
+    priority: "1",
+    enabled: true,
+  });
+
+  loadRules();
+}
+function editRule(rule) {
+  setEditingRuleId(rule.id);
+
+  setForm({
+    ad_id: String(rule.ad_id),
+    store_code: rule.store_code,
+    days_of_week: rule.days_of_week || [],
+    start_time: rule.start_time || "",
+    end_time: rule.end_time || "",
+    start_date: rule.start_date || "",
+    end_date: rule.end_date || "",
+    priority: String(rule.priority || 1),
+    enabled: rule.enabled,
+  });
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
 
   async function deleteRule(id) {
     if (!window.confirm("この配信ルールを削除しますか？")) return;
@@ -127,6 +155,44 @@ function DeliveryPage({ ads, stores, showToast, styles }) {
       .filter(Boolean)
       .join("・");
   };
+  const getRuleStatus = (rule) => {
+  if (!rule.enabled) return "停止中";
+
+  const now = new Date();
+
+  const today = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
+    now.getDay()
+  ];
+
+  const currentTime = now.toTimeString().slice(0, 5);
+  const todayDate = now.toISOString().split("T")[0];
+
+  if (rule.start_date && todayDate < rule.start_date) {
+    return "開始前";
+  }
+
+  if (rule.end_date && todayDate > rule.end_date) {
+    return "終了";
+  }
+
+  if (
+    rule.days_of_week &&
+    rule.days_of_week.length > 0 &&
+    !rule.days_of_week.includes(today)
+  ) {
+    return "曜日外";
+  }
+
+  if (rule.start_time && currentTime < rule.start_time.slice(0, 5)) {
+    return "時間外";
+  }
+
+  if (rule.end_time && currentTime > rule.end_time.slice(0, 5)) {
+    return "時間外";
+  }
+
+  return "配信中";
+};
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
@@ -267,10 +333,33 @@ function DeliveryPage({ ads, stores, showToast, styles }) {
             ))}
           </div>
         </div>
+<div style={{ display: "flex", gap: 10 }}>
+  <button style={styles.btnPrimary} onClick={addRule}>
+    {editingRuleId ? "💾 配信ルールを更新" : "＋ 配信ルールを登録"}
+  </button>
 
-        <button style={styles.btnPrimary} onClick={addRule}>
-          ＋ 配信ルールを登録
-        </button>
+  {editingRuleId && (
+    <button
+      style={styles.btnDangerSm}
+      onClick={() => {
+        setEditingRuleId(null);
+        setForm({
+          ad_id: "",
+          store_code: "",
+          days_of_week: [],
+          start_time: "",
+          end_time: "",
+          start_date: "",
+          end_date: "",
+          priority: "1",
+          enabled: true,
+        });
+      }}
+    >
+      ✕ キャンセル
+    </button>
+  )}
+</div>
       </div>
 
       <div style={styles.card}>
@@ -279,55 +368,96 @@ function DeliveryPage({ ads, stores, showToast, styles }) {
           <span style={styles.badge}>{rules.length}件</span>
         </div>
 
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              {["広告", "店舗", "曜日", "時間", "期間", "優先", "状態", "操作"].map(
-                (h) => (
-                  <th key={h} style={styles.th}>
-                    {h}
-                  </th>
-                )
-              )}
-            </tr>
-          </thead>
+       <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+    gap: 14,
+  }}
+>
+  {rules.map((rule) => {
+    const status = getRuleStatus(rule);
 
-          <tbody>
-            {rules.map((rule) => (
-              <tr key={rule.id} style={styles.tr}>
-                <td style={styles.td}>{getAdTitle(rule.ad_id)}</td>
-                <td style={styles.td}>{getStoreName(rule.store_code)}</td>
-                <td style={styles.td}>{formatDays(rule.days_of_week)}</td>
-                <td style={styles.td}>
-                  {rule.start_time || "指定なし"} ～ {rule.end_time || "指定なし"}
-                </td>
-                <td style={styles.td}>
-                  {rule.start_date || "未設定"} ～ {rule.end_date || "未設定"}
-                </td>
-                <td style={styles.td}>⭐ {rule.priority}</td>
-                <td style={styles.td}>
-                  {rule.enabled ? "有効" : "停止"}
-                </td>
-                <td style={styles.td}>
-                  <button
-                    style={styles.btnDangerSm}
-                    onClick={() => deleteRule(rule.id)}
-                  >
-                    削除
-                  </button>
-                </td>
-              </tr>
-            ))}
+    return (
+      <div
+        key={rule.id}
+        style={{
+          background: "#0d1526",
+          border: "1px solid #1e2d48",
+          borderRadius: 12,
+          padding: 16,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>
+            📺 {getAdTitle(rule.ad_id)}
+          </div>
 
-            {rules.length === 0 && (
-              <tr>
-                <td style={styles.td} colSpan="8">
-                  配信ルールはまだありません。
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+          <span
+            style={{
+              padding: "4px 10px",
+              borderRadius: 999,
+              fontSize: 11,
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+              background:
+                status === "配信中"
+                  ? "#064e3b"
+                  : status === "停止中"
+                  ? "#450a0a"
+                  : "#1e293b",
+              color:
+                status === "配信中"
+                  ? "#6ee7b7"
+                  : status === "停止中"
+                  ? "#fca5a5"
+                  : "#cbd5e1",
+            }}
+          >
+            {status}
+          </span>
+        </div>
+
+        <div style={{ marginTop: 12, display: "grid", gap: 8, fontSize: 13 }}>
+          <div>🏢 {getStoreName(rule.store_code)}</div>
+          <div>📅 {formatDays(rule.days_of_week)}</div>
+          <div>
+            🕒 {rule.start_time || "指定なし"} ～ {rule.end_time || "指定なし"}
+          </div>
+          <div>
+            📆 {rule.start_date || "未設定"} ～ {rule.end_date || "未設定"}
+          </div>
+          <div>⭐ 優先 {rule.priority}</div>
+          <div>{rule.enabled ? "🟢 有効" : "🔴 停止"}</div>
+        </div>
+
+        <hr
+          style={{
+            border: "none",
+            borderTop: "1px solid #24304f",
+            margin: "14px 0",
+          }}
+        />
+
+        <div style={{ display: "flex", justifyContent: "center", gap: 10 }}>
+          <button style={styles.btnPrimary} onClick={() => editRule(rule)}>
+            ✏ 編集
+          </button>
+
+          <button style={styles.btnDangerSm} onClick={() => deleteRule(rule.id)}>
+            🗑 削除
+          </button>
+        </div>
+      </div>
+    );
+  })}
+
+  {rules.length === 0 && (
+    <div style={{ color: "#94a3b8", fontSize: 13 }}>
+      配信ルールはまだありません。
+    </div>
+  )}
+</div>
       </div>
     </div>
   );
