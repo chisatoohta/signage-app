@@ -12,8 +12,13 @@ const DAYS = [
 ];
 
 function DeliveryPage({ ads, stores, showToast, styles }) {
-  const [rules, setRules] = useState([]);
-  const [editingRuleId, setEditingRuleId] = useState(null);
+const [rules, setRules] = useState([]);
+const [editingRuleId, setEditingRuleId] = useState(null);
+
+const [searchAd, setSearchAd] = useState("");
+const [searchStore, setSearchStore] = useState("");
+const [searchStatus, setSearchStatus] = useState("");
+const [onlyActive, setOnlyActive] = useState(false);
   const [form, setForm] = useState({
     ad_id: "",
     store_code: "",
@@ -364,9 +369,76 @@ function editRule(rule) {
 
       <div style={styles.card}>
         <div style={styles.cardHeader}>
-          <span style={styles.cardTitle}>配信ルール一覧</span>
-          <span style={styles.badge}>{rules.length}件</span>
-        </div>
+  <span style={styles.cardTitle}>配信ルール一覧</span>
+  <span style={styles.badge}>{rules.length}件</span>
+</div>
+
+<div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+    gap: 10,
+    marginTop: 16,
+    marginBottom: 20,
+  }}
+>
+  <select
+    style={styles.input}
+    value={searchAd}
+    onChange={(e) => setSearchAd(e.target.value)}
+  >
+    <option value="">広告（すべて）</option>
+    {ads.map((ad) => (
+      <option key={ad.id} value={ad.id}>
+        {ad.title}
+      </option>
+    ))}
+  </select>
+
+  <select
+    style={styles.input}
+    value={searchStore}
+    onChange={(e) => setSearchStore(e.target.value)}
+  >
+    <option value="">店舗（すべて）</option>
+    {stores.map((store) => (
+      <option key={store.id} value={store.code}>
+        {store.name}
+      </option>
+    ))}
+  </select>
+
+  <select
+    style={styles.input}
+    value={searchStatus}
+    onChange={(e) => setSearchStatus(e.target.value)}
+  >
+    <option value="">状態（すべて）</option>
+    <option value="配信中">配信中</option>
+    <option value="停止中">停止中</option>
+    <option value="開始前">開始前</option>
+    <option value="終了">終了</option>
+    <option value="曜日外">曜日外</option>
+    <option value="時間外">時間外</option>
+  </select>
+
+  <label
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 8,
+      color: "#cbd5e1",
+      fontSize: 14,
+    }}
+  >
+    <input
+      type="checkbox"
+      checked={onlyActive}
+      onChange={(e) => setOnlyActive(e.target.checked)}
+    />
+    配信中のみ表示
+  </label>
+</div>
 
        <div
   style={{
@@ -375,7 +447,29 @@ function editRule(rule) {
     gap: 14,
   }}
 >
-  {rules.map((rule) => {
+  {rules
+  .filter((rule) => {
+    const status = getRuleStatus(rule);
+
+    if (searchAd && String(rule.ad_id) !== searchAd) {
+      return false;
+    }
+
+    if (searchStore && rule.store_code !== searchStore) {
+      return false;
+    }
+
+    if (searchStatus && status !== searchStatus) {
+      return false;
+    }
+
+    if (onlyActive && status !== "配信中") {
+      return false;
+    }
+
+    return true;
+  })
+  .map((rule) => {
     const status = getRuleStatus(rule);
 
     return (
