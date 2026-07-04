@@ -198,6 +198,27 @@ function editRule(rule) {
 
   return "配信中";
 };
+const filteredRules = rules.filter((rule) => {
+  const status = getRuleStatus(rule);
+
+  if (searchAd && String(rule.ad_id) !== searchAd) {
+    return false;
+  }
+
+  if (searchStore && rule.store_code !== searchStore) {
+    return false;
+  }
+
+  if (searchStatus && status !== searchStatus) {
+    return false;
+  }
+
+  if (onlyActive && status !== "配信中") {
+    return false;
+  }
+
+  return true;
+});
 
   return (
     <div style={{ display: "grid", gap: 20 }}>
@@ -370,7 +391,9 @@ function editRule(rule) {
       <div style={styles.card}>
         <div style={styles.cardHeader}>
   <span style={styles.cardTitle}>配信ルール一覧</span>
-  <span style={styles.badge}>{rules.length}件</span>
+  <span style={styles.badge}>
+  {filteredRules.length} / {rules.length}件
+</span>
 </div>
 
 <div
@@ -447,29 +470,7 @@ function editRule(rule) {
     gap: 14,
   }}
 >
-  {rules
-  .filter((rule) => {
-    const status = getRuleStatus(rule);
-
-    if (searchAd && String(rule.ad_id) !== searchAd) {
-      return false;
-    }
-
-    if (searchStore && rule.store_code !== searchStore) {
-      return false;
-    }
-
-    if (searchStatus && status !== searchStatus) {
-      return false;
-    }
-
-    if (onlyActive && status !== "配信中") {
-      return false;
-    }
-
-    return true;
-  })
-  .map((rule) => {
+{filteredRules.map((rule) => {
     const status = getRuleStatus(rule);
 
     return (
@@ -546,11 +547,11 @@ function editRule(rule) {
     );
   })}
 
-  {rules.length === 0 && (
-    <div style={{ color: "#94a3b8", fontSize: 13 }}>
-      配信ルールはまだありません。
-    </div>
-  )}
+ {filteredRules.length === 0 && (
+  <div style={{ color: "#94a3b8", fontSize: 13 }}>
+    条件に合う配信ルールはありません。
+  </div>
+)}
 </div>
       </div>
     </div>
