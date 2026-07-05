@@ -271,29 +271,6 @@ const bannerAds = bannerCandidates.filter(
           {renderMedia(bannerAd2)}
         </div>
       </div>
-
-      <div
-        style={{
-          position: "fixed",
-          right: 12,
-          bottom: 12,
-          background: "rgba(15,23,42,0.9)",
-          color: "#fff",
-          padding: 12,
-          borderRadius: 10,
-          fontSize: 12,
-          lineHeight: 1.6,
-          zIndex: 9999,
-        }}
-      >
-        <div><strong>🛠 Player Debug</strong></div>
-        <div>店舗：{currentStore?.name || storeCode || "未指定"}</div>
-        <div>曜日：{today}</div>
-        <div>時刻：{currentTime}</div>
-        <div>広告：{currentAd?.title || "なし"}</div>
-        <div>Rule ID：{currentAd?.ruleId || "-"}</div>
-        <div>Priority：{currentAd?.rulePriority || "-"}</div>
-      </div>
   
     </div>
   );
