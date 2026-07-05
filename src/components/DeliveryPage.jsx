@@ -147,8 +147,11 @@ function editRule(rule) {
     loadRules();
   }
 
-  const getAdTitle = (adId) =>
-    ads.find((ad) => String(ad.id) === String(adId))?.title || "広告不明";
+  const getAd = (adId) =>
+  ads.find((ad) => String(ad.id) === String(adId));
+
+const getAdTitle = (adId) =>
+  getAd(adId)?.title || "広告不明";
 
   const getStoreName = (code) =>
     stores.find((store) => store.code === code)?.name || code;
@@ -160,6 +163,13 @@ function editRule(rule) {
       .filter(Boolean)
       .join("・");
   };
+  const formatDate = (date) => {
+  if (!date) return "未設定";
+
+  const d = new Date(date);
+
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+};
   const getRuleStatus = (rule) => {
   if (!rule.enabled) return "停止中";
 
@@ -471,9 +481,10 @@ const filteredRules = rules.filter((rule) => {
   }}
 >
 {filteredRules.map((rule) => {
-    const status = getRuleStatus(rule);
+  const status = getRuleStatus(rule);
+  const ad = getAd(rule.ad_id);
 
-    return (
+  return (
       <div
         key={rule.id}
         style={{
@@ -483,44 +494,99 @@ const filteredRules = rules.filter((rule) => {
           padding: 16,
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>
-            📺 {getAdTitle(rule.ad_id)}
-          </div>
+       <div style={{ display: "grid", gap: 10 }}>
+  {ad?.file && (
+    <div
+      style={{
+        width: "100%",
+        aspectRatio: "16 / 9",
+        borderRadius: 10,
+        overflow: "hidden",
+        background: "#020617",
+        border: "1px solid #1e2d48",
+      }}
+    >
+      {ad.file.match(/\.(mp4|webm|mov)$/i) ? (
+        <video
+          src={ad.file}
+          muted
+          playsInline
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      ) : (
+        <img
+          src={ad.file}
+          alt={ad.title}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            display: "block",
+          }}
+        />
+      )}
+    </div>
+  )}
 
-          <span
-            style={{
-              padding: "4px 10px",
-              borderRadius: 999,
-              fontSize: 11,
-              fontWeight: 700,
-              whiteSpace: "nowrap",
-              background:
-                status === "配信中"
-                  ? "#064e3b"
-                  : status === "停止中"
-                  ? "#450a0a"
-                  : "#1e293b",
-              color:
-                status === "配信中"
-                  ? "#6ee7b7"
-                  : status === "停止中"
-                  ? "#fca5a5"
-                  : "#cbd5e1",
-            }}
-          >
-            {status}
-          </span>
-        </div>
+  <div style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+    <div style={{ fontSize: 15, fontWeight: 700, color: "#e2e8f0" }}>
+      📺 {getAdTitle(rule.ad_id)}
+    </div>
+
+    <span
+      style={{
+        padding: "4px 10px",
+        borderRadius: 999,
+        fontSize: 11,
+        fontWeight: 700,
+        whiteSpace: "nowrap",
+        background:
+          status === "配信中"
+            ? "#064e3b"
+            : status === "停止中"
+            ? "#450a0a"
+            : "#1e293b",
+        color:
+          status === "配信中"
+            ? "#6ee7b7"
+            : status === "停止中"
+            ? "#fca5a5"
+            : "#cbd5e1",
+      }}
+    >
+      {status}
+    </span>
+  </div>
+</div>
 
         <div style={{ marginTop: 12, display: "grid", gap: 8, fontSize: 13 }}>
-          <div>🏢 {getStoreName(rule.store_code)}</div>
+          <div>
+  <span
+    style={{
+      display: "inline-flex",
+      alignItems: "center",
+      padding: "4px 10px",
+      borderRadius: 999,
+      background: "#172040",
+      color: "#bfdbfe",
+      fontSize: 12,
+      fontWeight: 700,
+    }}
+  >
+    🏢 {getStoreName(rule.store_code)}
+  </span>
+</div>
           <div>📅 {formatDays(rule.days_of_week)}</div>
           <div>
             🕒 {rule.start_time || "指定なし"} ～ {rule.end_time || "指定なし"}
           </div>
           <div>
-            📆 {rule.start_date || "未設定"} ～ {rule.end_date || "未設定"}
+            📆 {formatDate(rule.start_date)} ～ {formatDate(rule.end_date)}
           </div>
           <div>⭐ 優先 {rule.priority}</div>
           <div>{rule.enabled ? "🟢 有効" : "🔴 停止"}</div>
