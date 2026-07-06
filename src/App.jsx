@@ -7,6 +7,7 @@ import NAV_ITEMS from "./constants/navItems";
 import styles from "./styles/appStyles";
 import DeliveryPage from "./components/DeliveryPage";
 import PlayerPage from "./components/PlayerPage";
+import ReportPage from "./components/ReportPage";
 
 
 // ─── 初期データ ───────────────────────────────────────────
@@ -422,8 +423,12 @@ async function updateClient(id, onDone) {
   styles={styles}
 />}
           {page === "logs" && <LogsPage logs={logs} />}
-          {page === "reports" && (
-  <ReportsPage logs={logs} />
+   {page === "reports" && (
+  <ReportPage
+    logs={logs}
+    styles={styles}
+    StatCard={StatCard}
+  />
 )}
          {page === "player" && (
   <PlayerPage
@@ -831,91 +836,6 @@ function LogsPage() {
             ))}
           </tbody>
         </table>
-      )}
-    </div>
-  );
-}
-
-function ReportsPage({ logs }) {
-  const mainLogs = logs.filter((log) => (log.placement || "main") === "main");
-  const bannerLogs = logs.filter((log) => log.placement === "banner");
-
-  const createRanking = (targetLogs, keyName, fallback = "不明") => {
-    const counts = targetLogs.reduce((acc, log) => {
-      const name = log[keyName] || fallback;
-      acc[name] = (acc[name] || 0) + 1;
-      return acc;
-    }, {});
-
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-  };
-
-  const renderRankingTable = (title, ranking, label) => (
-    <div style={styles.card}>
-      <div style={styles.cardHeader}>
-        <span style={styles.cardTitle}>{title}</span>
-      </div>
-
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>{label}</th>
-            <th style={styles.th}>再生回数</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ranking.length === 0 ? (
-            <tr>
-              <td style={styles.td} colSpan="2">データがありません</td>
-            </tr>
-          ) : (
-            ranking.map(([name, count]) => (
-              <tr key={name} style={styles.tr}>
-                <td style={styles.td}>{name}</td>
-                <td style={styles.td}>{count} 回</td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-
-  return (
-    <div style={{ display: "grid", gap: 20 }}>
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <span style={styles.cardTitle}>広告枠別サマリー</span>
-        </div>
-
-        <div style={styles.grid2}>
-          <StatCard label="メイン広告再生数" value={mainLogs.length} unit="回" icon="🖥" color="#6366f1" />
-          <StatCard label="バナー広告再生数" value={bannerLogs.length} unit="回" icon="📢" color="#ec4899" />
-        </div>
-      </div>
-
-      {renderRankingTable(
-        "メイン広告｜広告別再生回数",
-        createRanking(mainLogs, "ad_title"),
-        "広告"
-      )}
-
-      {renderRankingTable(
-        "メイン広告｜店舗別再生回数",
-        createRanking(mainLogs, "store_name"),
-        "店舗"
-      )}
-
-      {renderRankingTable(
-        "バナー広告｜広告別再生回数",
-        createRanking(bannerLogs, "ad_title"),
-        "広告"
-      )}
-
-      {renderRankingTable(
-        "バナー広告｜店舗別再生回数",
-        createRanking(bannerLogs, "store_name"),
-        "店舗"
       )}
     </div>
   );
