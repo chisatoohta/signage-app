@@ -116,6 +116,7 @@ const bannerAds = bannerCandidates.filter(
     if (!currentAd || mainAds.length === 0) return;
 
     async function saveLog() {
+      
       await supabase.from("logs").insert([
         {
           ad_id: currentAd.id,
@@ -128,6 +129,7 @@ const bannerAds = bannerCandidates.filter(
       ]);
     }
 
+  
     saveLog();
 
     const timer = setTimeout(() => {

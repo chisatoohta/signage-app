@@ -4,12 +4,14 @@ function ReportPage({
   logs,
   ads,
   clients,
+  stores,
   styles,
   StatCard,
 }) {
- const [startDate, setStartDate] = useState("");
+const [startDate, setStartDate] = useState("");
 const [endDate, setEndDate] = useState("");
 const [selectedClient, setSelectedClient] = useState("");
+const [selectedStore, setSelectedStore] = useState("");
 
 const getAdByLog = (log) => {
   return ads.find((ad) => String(ad.id) === String(log.ad_id));
@@ -24,14 +26,22 @@ const filteredLogs = logs.filter((log) => {
   if (endDate && date > endDate) return false;
 
   if (selectedClient) {
-    const ad = getAdByLog(log);
+  const ad = getAdByLog(log);
 
-    if (!ad || String(ad.client_id) !== String(selectedClient)) {
-      return false;
-    }
+  if (!ad || String(ad.client_id) !== String(selectedClient)) {
+    return false;
   }
+}
+if (selectedStore) {
+  const logStoreCode = log.store_code?.toLowerCase().trim();
+  const selected = selectedStore?.toLowerCase().trim();
 
-  return true;
+  if (logStoreCode !== selected) {
+    return false;
+  }
+}
+
+return true;
 });
   const mainLogs = filteredLogs.filter(
     (log) => (log.placement || "main") === "main"
@@ -40,6 +50,19 @@ const filteredLogs = logs.filter((log) => {
   const bannerLogs = filteredLogs.filter(
     (log) => log.placement === "banner"
   );
+
+
+console.log(
+  "stores sample:",
+  JSON.stringify(
+    stores.map((store) => ({
+      code: store.code,
+      name: store.name,
+    })),
+    null,
+    2
+  )
+);
 
   const createRanking = (targetLogs, keyName, fallback = "不明") => {
     const counts = targetLogs.reduce((acc, log) => {
@@ -84,96 +107,122 @@ const filteredLogs = logs.filter((log) => {
     </div>
   );
 
-  return (
-    <div style={{ display: "grid", gap: 20 }}>
-      <div style={styles.card}>
-        <div style={styles.cardHeader}>
-          <span style={styles.cardTitle}>広告枠別サマリー</span>
-        </div>
-
-        <div
-  style={{
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-    gap: 16,
-    alignItems: "end",
-    marginTop: 16,
-    marginBottom: 20,
-  }}
->
-  <div>
-    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
-      開始日
-    </div>
-    <input
-      type="date"
-      value={startDate}
-      onChange={(e) => setStartDate(e.target.value)}
-      style={styles.input}
-    />
-  </div>
-
-  <div>
-    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
-      終了日
-    </div>
-    <input
-      type="date"
-      value={endDate}
-      onChange={(e) => setEndDate(e.target.value)}
-      style={styles.input}
-    />
-  </div>
-
-  <div>
-    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
-      広告主
-    </div>
-
-    <select
-      value={selectedClient}
-      onChange={(e) => setSelectedClient(e.target.value)}
-      style={styles.input}
-    >
-      <option value="">すべて</option>
-
-      {clients.map((client) => (
-        <option key={client.id} value={client.id}>
-          {client.company_name}
-        </option>
-      ))}
-    </select>
-  </div>
-
-  <button
-    style={{ ...(styles.btnSecondary || styles.btnPrimary), height: 36 }}
-    onClick={() => {
-      setStartDate("");
-      setEndDate("");
-      setSelectedClient("");
-    }}
-  >
-    リセット
-  </button>
-</div>
-
-        <div style={styles.grid2}>
-          <StatCard
-            label="メイン広告再生数"
-            value={mainLogs.length}
-            unit="回"
-            icon="🖥"
-            color="#6366f1"
-          />
-          <StatCard
-            label="バナー広告再生数"
-            value={bannerLogs.length}
-            unit="回"
-            icon="📢"
-            color="#ec4899"
-          />
-        </div>
+ return (
+  <div style={{ display: "grid", gap: 20 }}>
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <span style={styles.cardTitle}>📊 レポート条件</span>
       </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 20,
+          alignItems: "end",
+          marginTop: 18,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
+            開始日
+          </div>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            style={{ ...styles.input, width: "100%" }}
+          />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
+            終了日
+          </div>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            style={{ ...styles.input, width: "100%" }}
+          />
+        </div>
+
+        <div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
+            広告主
+          </div>
+          <select
+            value={selectedClient}
+            onChange={(e) => setSelectedClient(e.target.value)}
+            style={{ ...styles.input, width: "100%" }}
+          >
+            <option value="">すべて</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.company_name}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 6 }}>
+            店舗
+          </div>
+          <select
+            value={selectedStore}
+            onChange={(e) => setSelectedStore(e.target.value)}
+            style={{ ...styles.input, width: "100%" }}
+          >
+            <option value="">すべて</option>
+            {stores.map((store) => (
+  <option key={store.id} value={store.code || store.name}>
+    {store.name}
+  </option>
+))}
+          </select>
+        </div>
+
+        <button
+          style={{
+            ...(styles.btnSecondary || styles.btnPrimary),
+            height: 38,
+            width: "100%",
+          }}
+          onClick={() => {
+            setStartDate("");
+            setEndDate("");
+            setSelectedClient("");
+            setSelectedStore("");
+          }}
+        >
+          リセット
+        </button>
+      </div>
+    </div>
+
+    <div style={styles.card}>
+      <div style={styles.cardHeader}>
+        <span style={styles.cardTitle}>広告枠別サマリー</span>
+      </div>
+
+      <div style={{ ...styles.grid2, marginTop: 16 }}>
+        <StatCard
+          label="メイン広告再生数"
+          value={mainLogs.length}
+          unit="回"
+          icon="🖥"
+          color="#6366f1"
+        />
+        <StatCard
+          label="バナー広告再生数"
+          value={bannerLogs.length}
+          unit="回"
+          icon="📢"
+          color="#ec4899"
+        />
+      </div>
+    </div>
 
       {renderRankingTable(
         "メイン広告｜広告別再生回数",
