@@ -425,10 +425,12 @@ async function updateClient(id, onDone) {
           {page === "logs" && <LogsPage logs={logs} />}
    {page === "reports" && (
   <ReportPage
-    logs={logs}
-    styles={styles}
-    StatCard={StatCard}
-  />
+  logs={logs}
+  ads={ads}
+  clients={clients}
+  styles={styles}
+  StatCard={StatCard}
+/>
 )}
          {page === "player" && (
   <PlayerPage

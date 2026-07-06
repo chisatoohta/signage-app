@@ -1,20 +1,38 @@
 import { useState } from "react";
 
-function ReportPage({ logs, styles, StatCard }) {
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+function ReportPage({
+  logs,
+  ads,
+  clients,
+  styles,
+  StatCard,
+}) {
+ const [startDate, setStartDate] = useState("");
+const [endDate, setEndDate] = useState("");
+const [selectedClient, setSelectedClient] = useState("");
 
-  const filteredLogs = logs.filter((log) => {
-    if (!log.created_at) return false;
+const getAdByLog = (log) => {
+  return ads.find((ad) => String(ad.id) === String(log.ad_id));
+};
+  
+const filteredLogs = logs.filter((log) => {
+  if (!log.created_at) return false;
 
-    const date = log.created_at.slice(0, 10);
+  const date = log.created_at.slice(0, 10);
 
-    if (startDate && date < startDate) return false;
-    if (endDate && date > endDate) return false;
+  if (startDate && date < startDate) return false;
+  if (endDate && date > endDate) return false;
 
-    return true;
-  });
+  if (selectedClient) {
+    const ad = getAdByLog(log);
 
+    if (!ad || String(ad.client_id) !== String(selectedClient)) {
+      return false;
+    }
+  }
+
+  return true;
+});
   const mainLogs = filteredLogs.filter(
     (log) => (log.placement || "main") === "main"
   );
@@ -74,49 +92,70 @@ function ReportPage({ logs, styles, StatCard }) {
         </div>
 
         <div
-          style={{
-            display: "flex",
-            gap: 16,
-            alignItems: "center",
-            flexWrap: "wrap",
-            marginTop: 16,
-            marginBottom: 20,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
-              開始日
-            </div>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              style={styles.input}
-            />
-          </div>
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+    gap: 16,
+    alignItems: "end",
+    marginTop: 16,
+    marginBottom: 20,
+  }}
+>
+  <div>
+    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
+      開始日
+    </div>
+    <input
+      type="date"
+      value={startDate}
+      onChange={(e) => setStartDate(e.target.value)}
+      style={styles.input}
+    />
+  </div>
 
-          <div>
-            <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
-              終了日
-            </div>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              style={styles.input}
-            />
-          </div>
+  <div>
+    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
+      終了日
+    </div>
+    <input
+      type="date"
+      value={endDate}
+      onChange={(e) => setEndDate(e.target.value)}
+      style={styles.input}
+    />
+  </div>
 
-          <button
-            style={styles.btnSecondary || styles.btnPrimary}
-            onClick={() => {
-              setStartDate("");
-              setEndDate("");
-            }}
-          >
-            リセット
-          </button>
-        </div>
+  <div>
+    <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
+      広告主
+    </div>
+
+    <select
+      value={selectedClient}
+      onChange={(e) => setSelectedClient(e.target.value)}
+      style={styles.input}
+    >
+      <option value="">すべて</option>
+
+      {clients.map((client) => (
+        <option key={client.id} value={client.id}>
+          {client.company_name}
+        </option>
+      ))}
+    </select>
+  </div>
+
+  <button
+    style={{ ...(styles.btnSecondary || styles.btnPrimary), height: 36 }}
+    onClick={() => {
+      setStartDate("");
+      setEndDate("");
+      setSelectedClient("");
+    }}
+  >
+    リセット
+  </button>
+</div>
 
         <div style={styles.grid2}>
           <StatCard
