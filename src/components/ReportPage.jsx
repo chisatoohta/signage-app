@@ -51,19 +51,80 @@ return true;
     (log) => log.placement === "banner"
   );
 
+  const dailyReports = filteredLogs.reduce((acc, log) => {
+  if (!log.created_at) return acc;
 
-console.log(
-  "stores sample:",
-  JSON.stringify(
-    stores.map((store) => ({
-      code: store.code,
-      name: store.name,
-    })),
-    null,
-    2
-  )
+  const date = log.created_at.slice(0, 10);
+  acc[date] = (acc[date] || 0) + 1;
+
+  return acc;
+}, {});
+
+const dailyReportList = Object.entries(dailyReports).sort(
+  ([dateA], [dateB]) => dateB.localeCompare(dateA)
 );
 
+const exportCsv = () => {
+  const headers = [
+    "再生日時",
+    "広告名",
+    "広告枠",
+    "店舗コード",
+    "店舗名",
+    "再生秒数",
+  ];
+
+  const rows = filteredLogs.map((log) => [
+    log.created_at ? new Date(log.created_at).toLocaleString("ja-JP") : "",
+    log.ad_title || "",
+    log.placement || "main",
+    log.store_code || "",
+    log.store_name || "",
+    log.duration || "",
+  ]);
+
+ const infoRows = [
+  ["レポート期間", `${startDate || "すべて"} ～ ${endDate || "すべて"}`],
+  [
+    "広告主",
+    selectedClient
+      ? clients.find((c) => String(c.id) === String(selectedClient))
+          ?.company_name || "不明"
+      : "すべて",
+  ],
+  [
+    "店舗",
+    selectedStore
+      ? stores.find((s) => s.code === selectedStore)?.name || "不明"
+      : "すべて",
+  ],
+  [],
+];
+
+const csv = [...infoRows, headers, ...rows]
+  .map((row) =>
+    row
+      .map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`)
+      .join(",")
+  )
+  .join("\n");
+
+  const blob = new Blob(["\uFEFF" + csv], {
+  type: "text/csv;charset=utf-8;",
+});
+
+const url = URL.createObjectURL(blob);
+
+const link = document.createElement("a");
+link.href = url;
+const fileStart = startDate || "all";
+const fileEnd = endDate || "all";
+
+link.download = `signage_report_${fileStart}_${fileEnd}.csv`;
+link.click();
+
+URL.revokeObjectURL(url);
+};
   const createRanking = (targetLogs, keyName, fallback = "不明") => {
     const counts = targetLogs.reduce((acc, log) => {
       const name = log[keyName] || fallback;
@@ -98,7 +159,26 @@ console.log(
             ranking.map(([name, count]) => (
               <tr key={name} style={styles.tr}>
                 <td style={styles.td}>{name}</td>
-                <td style={styles.td}>{count} 回</td>
+                <td style={styles.td}>
+  <div
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+    }}
+  >
+    <div
+      style={{
+        height: 10,
+        width: `${Math.max(20, count)}px`,
+        background: "#3b82f6",
+        borderRadius: 999,
+      }}
+    />
+
+    <span>{count} 回</span>
+  </div>
+</td>
               </tr>
             ))
           )}
@@ -110,9 +190,24 @@ console.log(
  return (
   <div style={{ display: "grid", gap: 20 }}>
     <div style={styles.card}>
-      <div style={styles.cardHeader}>
-        <span style={styles.cardTitle}>📊 レポート条件</span>
-      </div>
+     <div
+  style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  }}
+>
+  <div style={styles.cardHeader}>
+    <span style={styles.cardTitle}>📊 レポート条件</span>
+  </div>
+
+  <button
+    style={styles.btnPrimary}
+    onClick={exportCsv}
+  >
+    📄 CSV出力
+  </button>
+</div>
 
       <div
         style={{
@@ -223,7 +318,42 @@ console.log(
         />
       </div>
     </div>
+<div style={styles.card}>
+  <div style={styles.cardHeader}>
+    <span style={styles.cardTitle}>日別再生数</span>
+  </div>
 
+  <table style={styles.table}>
+    <thead>
+      <tr>
+        <th style={styles.th}>日付</th>
+        <th style={styles.th}>再生回数</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {dailyReportList.length === 0 ? (
+        <tr>
+          <td style={styles.td} colSpan="2">
+            データがありません
+          </td>
+        </tr>
+      ) : (
+        dailyReportList.map(([date, count]) => (
+          <tr key={date} style={styles.tr}>
+            <td style={styles.td}>
+  {new Date(date).toLocaleDateString("ja-JP", {
+    month: "numeric",
+    day: "numeric",
+  })}
+</td>
+            <td style={styles.td}>{count} 回</td>
+          </tr>
+        ))
+      )}
+    </tbody>
+  </table>
+</div>
       {renderRankingTable(
         "メイン広告｜広告別再生回数",
         createRanking(mainLogs, "ad_title"),
