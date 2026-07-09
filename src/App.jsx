@@ -8,6 +8,7 @@ import styles from "./styles/appStyles";
 import DeliveryPage from "./components/DeliveryPage";
 import PlayerPage from "./components/PlayerPage";
 import ReportPage from "./components/ReportPage";
+import LogsPage from "./components/LogsPage";
 
 
 // ─── 初期データ ───────────────────────────────────────────
@@ -422,7 +423,7 @@ async function updateClient(id, onDone) {
   showToast={showToast}
   styles={styles}
 />}
-          {page === "logs" && <LogsPage logs={logs} />}
+          {page === "logs" && <LogsPage logs={logs} styles={styles} />}
    {page === "reports" && (
  <ReportPage
   logs={logs}
@@ -781,68 +782,6 @@ const handleDelete = async (id) => {
   );
 }
 
-// ─── 再生ログ ────────────────────────────────────────────
-function LogsPage() {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    loadLogs();
-  }, []);
-
-  async function loadLogs() {
-    setLoading(true);
-
-    const { data, error } = await supabase
-      .from("logs")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    console.log("Supabase logs data:", data);
-    console.log("Supabase logs error:", error);
-
-    if (!error) {
-      setLogs(data || []);
-    }
-
-    setLoading(false);
-  }
-
-  return (
-    <div>
-      <h2>再生ログ</h2>
-
-      {loading ? (
-        <p>読み込み中...</p>
-      ) : logs.length === 0 ? (
-        <p>再生ログはまだありません。</p>
-      ) : (
-        <table border="1" cellPadding="8" style={{ borderCollapse: "collapse", width: "100%" }}>
-          <thead>
-            <tr>
-              <th>再生日時</th>
-              <th>広告名</th>
-              <th>店舗コード</th>
-              <th>店舗名</th>
-              <th>再生秒数</th>
-            </tr>
-          </thead>
-          <tbody>
-            {logs.map((log) => (
-              <tr key={log.id}>
-                <td>{log.created_at ? new Date(log.created_at).toLocaleString("ja-JP") : "-"}</td>
-                <td>{log.ad_title || "-"}</td>
-                <td>{log.store_code || "-"}</td>
-                <td>{log.store_name || "-"}</td>
-                <td>{log.duration ? `${log.duration}秒` : "-"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </div>
-  );
-}
 
 // ─── 共通コンポーネント ────────────────────────────────
 function StatusBadge({ status }) {
