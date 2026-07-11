@@ -99,6 +99,17 @@ const bannerAds = bannerCandidates.filter(
 );
   const [mainIndex, setMainIndex] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const receiptData = {
+  receiptNumber: "1025",
+  items: [
+    { name: "Yシャツ", count: 1 },
+    { name: "スラックス", count: 1 },
+    { name: "ジャケット", count: 1 },
+  ],
+  itemCount: 3,
+  totalAmount: 1480,
+  pickupDate: "7/12 18:00",
+};
 
   const currentAd = mainAds[mainIndex];
   const bannerAd1 = bannerAds[bannerIndex];
@@ -221,17 +232,28 @@ const bannerAds = bannerCandidates.filter(
     );
   }
 
-  return (
+ return (
+  <div
+    style={{
+      background: "black",
+      width: "100vw",
+      height: "100vh",
+      overflow: "hidden",
+      display: "grid",
+      gridTemplateColumns: "7fr 3fr",
+    }}
+  >
+    {/* 左側：広告エリア */}
     <div
       style={{
-        background: "black",
-        width: "100vw",
-        height: "100vh",
-        overflow: "hidden",
+        minWidth: 0,
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
+        borderRight: "2px solid #1e293b",
       }}
     >
+      {/* メイン広告 */}
       <div
         style={{
           flex: 1,
@@ -244,6 +266,7 @@ const bannerAds = bannerCandidates.filter(
         {renderMedia(currentAd)}
       </div>
 
+      {/* バナー広告 */}
       <div
         style={{
           height: "22vh",
@@ -258,6 +281,7 @@ const bannerAds = bannerCandidates.filter(
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            minWidth: 0,
           }}
         >
           {renderMedia(bannerAd1)}
@@ -268,13 +292,123 @@ const bannerAds = bannerCandidates.filter(
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            minWidth: 0,
           }}
         >
           {renderMedia(bannerAd2)}
         </div>
       </div>
-  
     </div>
+
+    {/* 右側：レジ情報エリア */}
+    <div
+      style={{
+        background: "#f8fafc",
+        color: "#0f172a",
+        height: "100vh",
+        padding: "28px 24px",
+        boxSizing: "border-box",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+      }}
+    >
+      <div
+        style={{
+          fontSize: 18,
+          fontWeight: 800,
+          color: "#334155",
+          paddingBottom: 16,
+          borderBottom: "2px solid #cbd5e1",
+        }}
+      >
+        お預かり内容
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <div style={{ fontSize: 14, color: "#64748b" }}>受付番号</div>
+        <div style={{ fontSize: 38, fontWeight: 900 }}>
+          {receiptData.receiptNumber}
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 24,
+          display: "grid",
+          gap: 14,
+        }}
+      >
+        {receiptData.items.map((item) => (
+          <div
+            key={item.name}
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: 20,
+              paddingBottom: 10,
+              borderBottom: "1px solid #e2e8f0",
+            }}
+          >
+            <span>{item.name}</span>
+            <strong>{item.count}点</strong>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          marginTop: "auto",
+          borderTop: "2px solid #cbd5e1",
+          paddingTop: 20,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+          }}
+        >
+          <span style={{ fontSize: 16, color: "#64748b" }}>合計点数</span>
+          <strong style={{ fontSize: 26 }}>
+            {receiptData.itemCount}点
+          </strong>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            marginTop: 12,
+          }}
+        >
+          <span style={{ fontSize: 16, color: "#64748b" }}>合計金額</span>
+          <strong style={{ fontSize: 36 }}>
+            ¥{receiptData.totalAmount.toLocaleString()}
+          </strong>
+        </div>
+
+        <div
+          style={{
+            marginTop: 22,
+            padding: "16px",
+            background: "#e2e8f0",
+            borderRadius: 12,
+          }}
+        >
+          <div style={{ fontSize: 14, color: "#64748b" }}>
+            仕上がり予定
+          </div>
+          <div style={{ fontSize: 25, fontWeight: 800, marginTop: 4 }}>
+            {receiptData.pickupDate}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
   );
 }
 
