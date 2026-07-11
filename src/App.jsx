@@ -98,14 +98,15 @@ if (isPlayerMode && storeCode) {
   data = result.data?.map((item) => item.ads).filter(Boolean);
 } else {
   const result = await supabase
-    .from("ads")
-.select(`
-  *,
-  clients (
-    company_name
-  )
-`)
-    .order("id", { ascending: true });
+  .from("ads")
+  .select(`
+    *,
+    clients (
+      company_name
+    )
+  `)
+  .eq("archived", false)
+  .order("id", { ascending: true });
 
   error = result.error;
   data = result.data;
@@ -423,7 +424,13 @@ async function updateClient(id, onDone) {
   showToast={showToast}
   styles={styles}
 />}
-          {page === "logs" && <LogsPage logs={logs} styles={styles} />}
+          {page === "logs" && (
+  <LogsPage
+    logs={logs}
+    stores={stores}
+    styles={styles}
+  />
+)}
    {page === "reports" && (
  <ReportPage
   logs={logs}

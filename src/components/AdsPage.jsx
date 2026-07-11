@@ -130,57 +130,28 @@ priority: data[0].priority || 1,
   showToast("広告を登録しました");
 };
 
-const handleDelete = async (id) => {
-  const { data: linkedStores, error: storeError } = await supabase
-    .from("ad_stores")
-    .select("id")
-    .eq("ad_id", id);
-  if (storeError) {
-    console.error("配信設定確認エラー:", storeError);
-    return showToast("配信設定の確認に失敗しました", "error");
+const handleArchive = async (id) => {
+  if (
+    !window.confirm(
+      "この広告をアーカイブしますか？\n過去の再生ログはそのまま残ります。"
+    )
+  ) {
+    return;
   }
-
-  if (linkedStores.length > 0) {
-    return showToast(
-      `この広告は${linkedStores.length}件の配信設定で使用中のため削除できません`,
-      "error"
-    );
-  }
-
-  const { data: linkedLogs, error: logError } = await supabase
-    .from("logs")
-    .select("id")
-    .eq("ad_id", id)
-    .limit(1);
-
-  if (logError) {
-    console.error("再生ログ確認エラー:", logError);
-    return showToast("再生ログの確認に失敗しました", "error");
-  }
-
-  if (linkedLogs.length > 0) {
-    return showToast(
-      "この広告には再生ログがあるため削除できません",
-      "error"
-    );
-  }
-
-  if (!window.confirm("この広告を削除しますか？")) return;
 
   const { error } = await supabase
     .from("ads")
-    .delete()
+    .update({ archived: true })
     .eq("id", id);
 
   if (error) {
-    console.error("広告削除エラー:", error);
-    return showToast("広告の削除に失敗しました", "error");
+    console.error("広告アーカイブエラー:", error);
+    return showToast("広告のアーカイブに失敗しました", "error");
   }
 
-  setAds(ads.filter((a) => a.id !== id));
-  showToast("広告を削除しました");
+  setAds(ads.filter((ad) => ad.id !== id));
+  showToast("広告をアーカイブしました");
 };
-
 const handleEdit = async (ad) => {
   setEditingAd(ad);
   setForm({
@@ -485,11 +456,11 @@ priority: data[0].priority || 1,
   </button>
 
   <button
-    style={styles.btnDanger}
-    onClick={() => handleDelete(ad.id)}
-  >
-    🗑 削除
-  </button>
+  style={styles.btnDanger}
+  onClick={() => handleArchive(ad.id)}
+>
+  📦 アーカイブ
+</button>
 </div>
             </div>
             
