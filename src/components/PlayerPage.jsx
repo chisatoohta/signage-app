@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
 import { getReceiptData } from "../data/receiptData";
+import InfoPanel from "./InfoPanel";
 
 function PlayerPage({ ads = [], stores = [], storeCode, deliveryRules = [] }) {
   // この店舗で有効な配信ルールだけ取得
@@ -307,7 +308,7 @@ const bannerAds = bannerCandidates.filter(
         background: "#f8fafc",
         color: "#0f172a",
         height: "100vh",
-        padding: "28px 24px",
+       padding: "28px 24px 0",
         boxSizing: "border-box",
         display: "flex",
         flexDirection: "column",
@@ -463,6 +464,16 @@ const bannerAds = bannerCandidates.filter(
             {receiptData.pickupDate}
           </div>
         </div>
+       <div
+  style={{
+    height: 180,
+    margin: "24px -24px 0",
+    borderTop: "2px solid #cbd5e1",
+    flexShrink: 0,
+  }}
+>
+  <InfoPanel storeCode={storeCode || "please"} />
+</div>
       </div>
     </div>
   </div>
