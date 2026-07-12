@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../supabase";
+import { getReceiptData } from "../data/receiptData";
 
 function PlayerPage({ ads = [], stores = [], storeCode, deliveryRules = [] }) {
   // この店舗で有効な配信ルールだけ取得
@@ -99,18 +100,8 @@ const bannerAds = bannerCandidates.filter(
 );
   const [mainIndex, setMainIndex] = useState(0);
   const [bannerIndex, setBannerIndex] = useState(0);
-  const receiptData = {
-  receiptNumber: "1025",
-  items: [
-    { name: "Yシャツ", count: 1 },
-    { name: "スラックス", count: 1 },
-    { name: "ジャケット", count: 1 },
-  ],
-  itemCount: 3,
-  totalAmount: 1480,
-  pickupDate: "7/12 18:00",
-};
-
+  const [currentDateTime, setCurrentDateTime] = useState(new Date());
+ 
   const currentAd = mainAds[mainIndex];
   const bannerAd1 = bannerAds[bannerIndex];
   const bannerAd2 =
@@ -123,6 +114,16 @@ const bannerAds = bannerCandidates.filter(
       store.code?.toLowerCase().trim() === storeCode?.toLowerCase().trim()
   );
 
+  const receiptData = getReceiptData(storeCode || "please");
+
+  useEffect(() => {
+  const timer = setInterval(() => {
+    setCurrentDateTime(new Date());
+  }, 1000);
+
+  return () => clearInterval(timer);
+}, []);
+  
   useEffect(() => {
     if (!currentAd || mainAds.length === 0) return;
 
@@ -314,16 +315,52 @@ const bannerAds = bannerCandidates.filter(
       }}
     >
       <div
-        style={{
-          fontSize: 18,
-          fontWeight: 800,
-          color: "#334155",
-          paddingBottom: 16,
-          borderBottom: "2px solid #cbd5e1",
-        }}
-      >
-        お預かり内容
-      </div>
+  style={{
+    paddingBottom: 16,
+    borderBottom: "2px solid #cbd5e1",
+  }}
+>
+  <div
+    style={{
+      fontSize: 14,
+      color: "#64748b",
+      marginBottom: 4,
+    }}
+  >
+    📍店舗
+  </div>
+
+  <div
+    style={{
+      fontSize: 26,
+      fontWeight: 800,
+      color: "#0f172a",
+    }}
+  >
+    {currentStore?.name || "デモ店舗"}
+  </div>
+
+  <div
+  style={{
+    marginTop: 8,
+    fontSize: 15,
+    color: "#64748b",
+  }}
+>
+  {currentDateTime.toLocaleString("ja-JP")}
+</div>
+
+  <div
+    style={{
+      marginTop: 12,
+      fontSize: 18,
+      fontWeight: 700,
+      color: "#334155",
+    }}
+  >
+    お預かり内容
+  </div>
+</div>
 
       <div style={{ marginTop: 22 }}>
         <div style={{ fontSize: 14, color: "#64748b" }}>受付番号</div>
@@ -340,21 +377,41 @@ const bannerAds = bannerCandidates.filter(
         }}
       >
         {receiptData.items.map((item) => (
-          <div
-            key={item.name}
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: 20,
-              paddingBottom: 10,
-              borderBottom: "1px solid #e2e8f0",
-            }}
-          >
-            <span>{item.name}</span>
-            <strong>{item.count}点</strong>
-          </div>
-        ))}
+  <div
+    key={item.name}
+    style={{
+      paddingBottom: 10,
+      borderBottom: "1px solid #e2e8f0",
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        fontSize: 20,
+      }}
+    >
+      <span>{item.name}</span>
+      <strong>{item.count}点</strong>
+    </div>
+
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        marginTop: 5,
+        fontSize: 14,
+        color: "#64748b",
+      }}
+    >
+      <span>単価 ¥{item.unitPrice.toLocaleString()}</span>
+      <span>
+        小計 ¥{(item.count * item.unitPrice).toLocaleString()}
+      </span>
+    </div>
+  </div>
+))}
       </div>
 
       <div
