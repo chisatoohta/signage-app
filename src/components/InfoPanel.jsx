@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { getNotice } from "../data/noticeData";
 
 function InfoPanel({ storeCode }) {
   const [weather, setWeather] = useState(null);
   const [error, setError] = useState("");
+  const [currentCard, setCurrentCard] = useState(0);
 
   const storeLocations = {
   please: {
@@ -64,6 +66,15 @@ const location = storeLocations[storeCode] || storeLocations.please;
 
     return () => clearInterval(timer);
   }, [location.latitude, location.longitude]);
+  useEffect(() => {
+  const timer = setInterval(() => {
+    setCurrentCard((prev) => (prev + 1) % 3);
+  }, 5000);
+
+  return () => clearInterval(timer);
+}, []);
+
+
 
   const getWeatherInfo = (code) => {
     if (code === 0) return { icon: "☀️", label: "快晴" };
@@ -113,6 +124,9 @@ const location = storeLocations[storeCode] || storeLocations.please;
     weather.temperature
   );
 
+  const notice = getNotice(storeCode); 
+
+  if (currentCard === 0) {
   return (
     <div
       style={{
@@ -121,81 +135,105 @@ const location = storeLocations[storeCode] || storeLocations.please;
         padding: 18,
         background: "#f8fafc",
         color: "#0f172a",
-        display: "grid",
-        gridTemplateColumns: "1fr 1fr",
-        gap: 14,
       }}
     >
+      <div style={{ fontSize: 18, fontWeight: 800 }}>
+        {location.name}の天気
+      </div>
+
       <div
         style={{
-          paddingRight: 14,
-          borderRight: "1px solid #cbd5e1",
+          marginTop: 16,
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
         }}
       >
-        <div style={{ fontSize: 16, fontWeight: 800 }}>
-          {location.name}の天気
-        </div>
+        <div style={{ fontSize: 42 }}>{weatherInfo.icon}</div>
 
-        <div
-          style={{
-            marginTop: 10,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <div style={{ fontSize: 34 }}>{weatherInfo.icon}</div>
-
-          <div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>
-              {weather.temperature}℃
-            </div>
-            <div style={{ fontSize: 14, color: "#64748b" }}>
-              {weatherInfo.label}
-            </div>
+        <div>
+          <div style={{ fontSize: 30, fontWeight: 800 }}>
+            {weather.temperature}℃
           </div>
-        </div>
-
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 13,
-            color: "#64748b",
-          }}
-        >
-          降水確率 {weather.precipitation}%
+          <div style={{ color: "#64748b" }}>
+            {weatherInfo.label}
+          </div>
         </div>
       </div>
 
-      <div>
-        <div style={{ fontSize: 16, fontWeight: 800 }}>
-          洗濯予報
-        </div>
-
-        <div
-          style={{
-            marginTop: 12,
-            fontSize: 20,
-            letterSpacing: 2,
-          }}
-        >
-          {"★".repeat(laundryInfo.stars)}
-          {"☆".repeat(5 - laundryInfo.stars)}
-        </div>
-
-        <div
-          style={{
-            marginTop: 10,
-            fontSize: 14,
-            lineHeight: 1.6,
-            color: "#475569",
-          }}
-        >
-          {laundryInfo.message}
-        </div>
+      <div style={{ marginTop: 14, color: "#64748b" }}>
+        降水確率 {weather.precipitation}%
       </div>
     </div>
   );
+}
+
+if (currentCard === 1) {
+  return (
+    <div
+      style={{
+        height: "100%",
+        boxSizing: "border-box",
+        padding: 18,
+        background: "#f8fafc",
+        color: "#0f172a",
+      }}
+    >
+      <div style={{ fontSize: 18, fontWeight: 800 }}>
+        👕 洗濯予報
+      </div>
+
+      <div
+        style={{
+          marginTop: 20,
+          fontSize: 28,
+          letterSpacing: 3,
+        }}
+      >
+        {"★".repeat(laundryInfo.stars)}
+        {"☆".repeat(5 - laundryInfo.stars)}
+      </div>
+
+      <div
+        style={{
+          marginTop: 16,
+          fontSize: 18,
+          lineHeight: 1.6,
+          color: "#475569",
+        }}
+      >
+        {laundryInfo.message}
+      </div>
+    </div>
+  );
+}
+
+return (
+  <div
+    style={{
+      height: "100%",
+      boxSizing: "border-box",
+      padding: 18,
+      background: "#f8fafc",
+      color: "#0f172a",
+    }}
+  >
+    <div style={{ fontSize: 18, fontWeight: 800 }}>
+      📢 {notice.title}
+    </div>
+
+    <div
+      style={{
+        marginTop: 20,
+        fontSize: 20,
+        lineHeight: 1.7,
+        color: "#334155",
+      }}
+    >
+      {notice.message}
+    </div>
+  </div>
+);
 }
 
 export default InfoPanel;
