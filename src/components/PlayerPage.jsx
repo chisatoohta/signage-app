@@ -103,9 +103,13 @@ const bannerAds = bannerCandidates.filter(
   const [bannerIndex, setBannerIndex] = useState(0);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [showThankYou, setShowThankYou] = useState(false);
+  const [isCheckout, setIsCheckout] = useState(false);
 
  
   const currentAd = mainAds[mainIndex];
+ const checkoutAd =
+  ads.find((ad) => ad.title?.trim() === "会計中広告") ||
+  mainAds[0];
   const bannerAd1 = bannerAds[bannerIndex];
   const bannerAd2 =
     bannerAds.length > 1
@@ -147,6 +151,31 @@ useEffect(() => {
   return () => {
     window.removeEventListener("keydown", handleKeyDown);
     clearTimeout(thankYouTimer);
+  };
+}, []);
+
+useEffect(() => {
+  const handleCheckoutKey = (event) => {
+    if (event.key.toLowerCase() !== "c") return;
+
+    setIsCheckout((prev) => {
+      // 会計中 → 会計終了
+      if (prev) {
+        setShowThankYou(true);
+
+        setTimeout(() => {
+          setShowThankYou(false);
+        }, 4000);
+      }
+
+      return !prev;
+    });
+  };
+
+  window.addEventListener("keydown", handleCheckoutKey);
+
+  return () => {
+    window.removeEventListener("keydown", handleCheckoutKey);
   };
 }, []);
   
@@ -326,19 +355,22 @@ return (
     }}
   >
     <div
-      key={`main-${currentAd?.id ?? "empty"}`}
-      style={{
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        animation: "playerMediaFade 0.55s ease",
-      }}
-    >
-      {renderMedia(currentAd)}
-    </div>
-
+  key={
+    isCheckout
+      ? `checkout-${checkoutAd?.id ?? "empty"}`
+      : `main-${currentAd?.id ?? "empty"}`
+  }
+  style={{
+    width: "100%",
+    height: "100%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    animation: "playerMediaFade 0.55s ease",
+  }}
+>
+  {renderMedia(isCheckout ? checkoutAd : currentAd)}
+</div>
     {/* 左上の小さな表示 */}
     <div
       style={{
@@ -358,6 +390,26 @@ return (
     >
       INFORMATION
     </div>
+
+    {isCheckout && (
+  <div
+    style={{
+      position: "absolute",
+      top: 14,
+      right: 16,
+      padding: "7px 12px",
+      borderRadius: 999,
+      background: "rgba(37, 99, 235, 0.9)",
+      color: "#ffffff",
+      fontSize: 12,
+      fontWeight: 800,
+      letterSpacing: 1,
+      zIndex: 10,
+    }}
+  >
+    会計中
+  </div>
+)}
   </div>
 
   {/* バナー広告 */}
